@@ -6,6 +6,60 @@ site:target.com ext:xml | ext:conf | ext:cnf | ext:reg | ext:inf | ext:rdp | ext
 
 site:target.com ext:sql | ext:dbf | ext:mdb | ext:te | ext:mar | ext:ddl | ext:gdb | ext:itw | ext:pdb | ext:mdb | ext:db | ext:v12 | ext:cdb | ext:abs | ext:pan | ext:SQLITE3 | ext:eco | ext:temx | ext:db3 | ext:rol | ext:dp1 | ext:trc | ext:sdf | ext:xld | ext:mrg | ext:dbv | ext:dbt | ext:p96 | ext:fcd
 
+#Backup files:
+
+site:target.com ext:bkf | ext:bkp | ext:bak | ext:old | ext:backup | ext:bkz | ext:abk | ext:spg | ext:tig | ext:bak2 | ext:sqb | ext:cbu | ext:bff | ext:bkup | ext:bac | ext:obk | ext:nbd | ext:
+
+# .git folder
+inurl:"/.git" target.com -github
+
+# Exposed documents
+site:target.com ext:doc | ext:docx | ext:odt | ext:pdf | ext:rtf | ext:sxw | ext:psw | ext:ppt | ext:pptx | ext:pps | ext:csv
+
+# Other files
+site:target.com intitle:index.of | ext:log | ext:php intitle:phpinfo "published by the PHP Group" | inurl:shell | inurl:backdoor | inurl:wso | inurl:cmd | shadow | passwd | boot.ini | inurl:backdoor | inurl:readme | inurl:license | inurl:install | inurl:setup | inurl:config | inurl:"/phpinfo.php" | inurl:".htaccess" | ext:swf
+
+# SQL errors
+site:target.com intext:"sql syntax near" | intext:"syntax error has occurred" | intext:"incorrect syntax near" | intext:"unexpected end of SQL command" | intext:"Warning: mysql_connect()" | intext:"Warning: mysql_query()" | intext:"Warning: pg_connect()"
+
+# PHP errors
+site:target.com "PHP Parse error" | "PHP Warning" | "PHP Error"
+
+# Login pages
+site:target.com inurl:signup | inurl:register | intitle:Signup
+
+# Open redirects
+site:target.com inurl:redir | inurl:url | inurl:redirect | inurl:return | inurl:src=http | inurl:r=http
+
+# Apache Struts RCE
+site:target.com ext:action | ext:struts | ext:do
+
+# Search in pastebin
+site:pastebin.com target.com
+
+# Linkedin employees
+site:linkedin.com employees target.com
+
+# Wordpress files
+site:target.com inurl:wp-content | inurl:wp-includes
+
+# Subdomains
+site:*.target.com
+
+# Sub-subdomains
+site:*.*.target.com
+
+#Find S3 Buckets
+site:.s3.amazonaws.com | site:http://storage.googleapis.com | site:http://amazonaws.com "target"
+
+# Traefik
+intitle:traefik inurl:8080/dashboard "target"
+
+# Jenkins
+intitle:"Dashboard [Jenkins]"
+
+
+
 
 
 
