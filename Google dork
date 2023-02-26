@@ -2,3 +2,31 @@
 
 site:target.com ext:xml | ext:conf | ext:cnf | ext:reg | ext:inf | ext:rdp | ext:cfg | ext:txt | ext:ora | ext:env | ext:ini | ext:tcp | ext:config | ext:pcf | ext:pb | ext:rdp | ext:gitconfig | ext:pxe | ext:ewc | ext:tim | ext:jcf | ext:rvp | ext:iom | ext:jvr | ext:wsp | ext:rap | ext:efc
 
+## Database file:
+
+site:target.com ext:sql | ext:dbf | ext:mdb | ext:te | ext:mar | ext:ddl | ext:gdb | ext:itw | ext:pdb | ext:mdb | ext:db | ext:v12 | ext:cdb | ext:abs | ext:pan | ext:SQLITE3 | ext:eco | ext:temx | ext:db3 | ext:rol | ext:dp1 | ext:trc | ext:sdf | ext:xld | ext:mrg | ext:dbv | ext:dbt | ext:p96 | ext:fcd
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
