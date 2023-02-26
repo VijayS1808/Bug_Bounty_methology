@@ -1,0 +1,4 @@
+## Config files:
+
+site:target.com ext:xml | ext:conf | ext:cnf | ext:reg | ext:inf | ext:rdp | ext:cfg | ext:txt | ext:ora | ext:env | ext:ini | ext:tcp | ext:config | ext:pcf | ext:pb | ext:rdp | ext:gitconfig | ext:pxe | ext:ewc | ext:tim | ext:jcf | ext:rvp | ext:iom | ext:jvr | ext:wsp | ext:rap | ext:efc
+
