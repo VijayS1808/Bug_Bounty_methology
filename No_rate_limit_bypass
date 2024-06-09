@@ -1,0 +1,45 @@
+Before we jump into bypass, let's dig into places where we can find it.
+
+· Login
+
+· Reset Password
+
+· 2FA/OTP
+
+· Sign up
+
+· Sending messages, Pin code, Forums, comments, and coupon codes, etc.
+
+
+## Manipulating IP Origin via Headers
+
+X-Originating-IP: 127.0.0.1
+X-Forwarded-For: 127.0.0.1
+X-Remote-IP: 127.0.0.1
+X-Remote-Addr: 127.0.0.1
+X-Client-IP: 127.0.0.1
+X-Host: 127.0.0.1
+X-Forwared-Host: 127.0.0.1
+
+## Bypass Rate Limit when there’s a CAPTCHA
+
+You must have encountered a Google CAPTCHA while testing Website. These are some ways with the help of which you can bypass it.
+
+Try Removing CAPTCHA Parameter from the body of the Request
+Try adding some String of the same length as that of the Parameter
+Keep the Intercept ON, Send Request to Intruder. Sometimes, It may give unexpected results.
+
+## Bypassing Rate Limit with some Characters
+
+Adding Null Byte ( %00 ) at the end of the Email can sometimes Bypass Rate Limit.
+Try adding a Space Character after a Email. ( Not Encoded )
+Some Common Characters that help bypassing Rate Limit : %0d , %2e , %09 , %20
+
+
+
+
+# Double X-Forwarded-For header example
+X-Forwarded-For:
+X-Forwarded-For: 127.0.0.1
+
+
