@@ -1,0 +1,35 @@
+### Introduction:
+
+In all the operating systems that I know, CR (carriage return) and LF (line feed) characters are used to separate lines in text. For example, if you were to inspect this HTTP request at the byte level:
+
+GET / HTTP/1.1
+Host: site.com
+Accept: application/json
+
+ou would see that all the lines end with these two hex characters: 0D 0A . Programmers may also know them as \r (CR) and \n (LF).
+
+CRLF injection includes many subcategories that describe CRLF injection in a specific place, but they’re still all different types of CRLF injections. These include:
+
+header-splitting attack
+HTTP header injection
+email injection
+log injection
+there are probably many more of these subcategories.
+
+In the following sections, I’m going to explain how you can exploit these two cute characters to get bounties and secure your own servers against them.
+
+## CRLF injection
+Normally CRLF characters are benign, like in a feedback text box where multiple lines are needed, but a problem arises when user input containing CRLF is blindly trusted and used in a server-side function where CRLF characters were not expected. If this happens, it might be possible for an attacker to do a number of attacks, including:
+
+reflected XSS
+HTTP request smuggling
+email injection
+log injection
+
+Basically, all functions that use newlines as a delimiter are vulnerable if input is not sanitized.
+
+
+
+
+
+
