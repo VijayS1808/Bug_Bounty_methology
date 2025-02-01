@@ -9,7 +9,7 @@ Before we jump into bypass, let's dig into places where we can find it.
 · Sign up
 
 · Sending messages, Pin code, Forums, comments, and coupon codes, etc.
-
+---------------------------------------------------------------
 
 ## Manipulating IP Origin via Headers
 
@@ -56,7 +56,7 @@ True-Client-Ip:127.0.0.1
 # Double X-Forwarded-For header example
 X-Forwarded-For:
 X-Forwarded-For: 127.0.0.1
-
+----------------------------------------------------------------
 ## Bypass Rate Limit when there’s a CAPTCHA
 
 You must have encountered a Google CAPTCHA while testing Website. These are some ways with the help of which you can bypass it.
@@ -64,14 +64,29 @@ You must have encountered a Google CAPTCHA while testing Website. These are some
 Try Removing CAPTCHA Parameter from the body of the Request
 Try adding some String of the same length as that of the Parameter
 Keep the Intercept ON, Send Request to Intruder. Sometimes, It may give unexpected results.
-
+-------------------------------------------------------------------
 ## Bypassing Rate Limit with some Characters
 
 Adding Null Byte ( %00 ) at the end of the Email can sometimes Bypass Rate Limit.
 Try adding a Space Character after a Email. ( Not Encoded )
 Some Common Characters that help bypassing Rate Limit : %0d , %2e , %09 , %20
-
+------------------------------------------
 ## IP Rotation extension
+------------------------------------------
+## 
+
+1. By simply changing one letter in the email to uppercase, I could send unlimited requests, bypassing restrictions. 🚀
+2.After 10 continuous request:
+
+ ragu@gmail.com --- 429 Too Many Requests
+ Ragu@gmail.com --- 200 OK
+
+3. You can change any letter into uppercase:
+ Ragu@gmail.com
+ RAgu@gmail.com
+ raGU@gmail.com
+ RAGU@gmail.com 
+4. Always test case variations in email parameters—it might just lead to a cool finding! 
 
 
 
