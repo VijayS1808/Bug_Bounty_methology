@@ -1,5 +1,9 @@
 🔐 Authentication Bugs:
 
+
+🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼
+
+
 1️⃣ SQL Injection in Login:
 
 Payloads: ```' OR '1'='1 --, ' UNION SELECT null, version() --```
@@ -16,6 +20,8 @@ Click Login.
 
 ✅ If successfully logged in → SQL Injection exists.
 
+🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼
+
 2️⃣ Login Without Email Verification
 ✅ Steps:
 
@@ -26,6 +32,9 @@ Skip clicking the verification link in the email.
 Attempt to login directly with your credentials.
 
 ✅ If login works without email verification → Business logic flaw.
+
+🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼
+
 
 3️⃣ Username Enumeration
 ✅ Steps:
@@ -44,6 +53,9 @@ Observe the error message (e.g., "User not found").
 
 ✅ If the system gives different error messages for valid vs. invalid usernames → Username enumeration possible.
 
+🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼
+
+
 4️⃣ Weak Password Acceptance
 ✅ Steps:
 
@@ -54,6 +66,10 @@ If weak passwords are accepted without error or restriction, the system is vulne
 ✅ If weak passwords are accepted → Password policy flaw.
 
 🔁 Authorization Bugs
+
+🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼
+
+
 5️⃣ Privilege Escalation
 ✅ Steps:
 
@@ -67,6 +83,9 @@ Submit the modified request.
 
 ✅ If you gain admin access or privileges → Privilege escalation flaw.
 
+🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼
+
+
 6️⃣ Insecure Direct Object Reference (IDOR)
 ✅ Steps:
 
@@ -78,6 +97,9 @@ Observe if you can access another user’s data.
 
 ✅ If data from another user appears → IDOR vulnerability.
 
+🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼
+
+
 7️⃣ Access Control Failure
 ✅ Steps:
 
@@ -88,6 +110,9 @@ Attempt to access an admin page by modifying the URL or using a known path (e.g.
 ✅ If the admin panel loads → Access control is broken.
 
 💉 Injection Bugs
+
+🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼
+
 8️⃣ XSS (Cross-Site Scripting)
 Payloads: <script>alert(1)</script>, "><img src=x onerror=alert(1)> ✅ Steps:
 
@@ -96,6 +121,9 @@ Input the payload in username or password field.
 Submit the form.
 
 ✅ If the payload executes (i.e., alert box appears) → Reflected XSS exists.
+
+🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼
+
 
 9️⃣ Command Injection
 Payloads: ; whoami, && ls, | id ✅ Steps:
@@ -106,6 +134,9 @@ Submit the form.
 
 ✅ If the OS command is executed (e.g., user or file listing appears) → Command injection exists.
 
+🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼
+
+
 🔟 SSTI (Server-Side Template Injection)
 Payloads: {{7*7}}, ${7*7}, <%= 7 * 7 %> ✅ Steps:
 
@@ -114,6 +145,10 @@ Input {{7*7}} or ${7*7} in the username field.
 Submit the login form.
 
 ✅ If the system evaluates the expression and returns 49 or a calculated value → SSTI vulnerability exists.
+
+🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼🌼
+
+
 
 1️⃣1️⃣ XXE (XML External Entity Injection)
 ✅ Steps:
