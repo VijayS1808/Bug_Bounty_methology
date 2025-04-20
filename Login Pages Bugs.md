@@ -1,6 +1,10 @@
-🔐 Authentication Bugs
-1️⃣ SQL Injection in Login
-Payloads: ' OR '1'='1 --, ' UNION SELECT null, version() -- ✅ Steps:
+🔐 Authentication Bugs:
+
+1️⃣ SQL Injection in Login:
+
+Payloads: ```' OR '1'='1 --, ' UNION SELECT null, version() --```
+
+✅ Steps:
 
 Open login page.
 
