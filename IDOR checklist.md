@@ -1,21 +1,28 @@
-### Find and Replace IDs in URLs, headers, and body:
+❤️️❤️️❤️️❤️️❤️️ ### Find and Replace IDs in URLs, headers, and body: ❤️️❤️️❤️️❤️️
 
-Example: /users/01 → /users/02
+```Example: /users/01 → /users/02```
+
+
 Try Parameter Pollution:
 
-Example: users=01 → users=01&users=02
+```Example: users=01 → users=01&users=02```
+
 Special Characters:
 
-Example: /users/01* or /users/* → Disclosure of every single user
+```Example: /users/01* or /users/* → Disclosure of every single user```
+
 Try Older Versions of API Endpoints:
 
-Example: /api/v3/users/01 → /api/v1/users/02
+```Example: /api/v3/users/01 → /api/v1/users/02```
+
 Add Extension:
 
-Example: /users/01 → /users/02.json
+```Example: /users/01 → /users/02.json```
+
 Change Request Methods:
 
-Example: POST /users/01 → GET, PUT, PATCH, DELETE
+```Example: POST /users/01 → GET, PUT, PATCH, DELETE```
+
 Check if Referer or Some Other Headers are Used to Validate IDs:
 
 Example:
