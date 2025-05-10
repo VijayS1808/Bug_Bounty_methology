@@ -31,7 +31,8 @@ As you can see, you’ll be logged back into your coursera.org account using the
 
 ```
 
-### Broken authentication and session management flaw:
+### Broken Authentication - Security token gets captured via man in the middle attack
+
 
 ```
 
@@ -109,3 +110,41 @@ Key Insight:
 In steps 6 and 7, you can observe that the password reset token is transmitted over plain HTTP — making it vulnerable to interception. By the time you reach steps 8 and onwards, the token is transferred via HTTPS, which is secure.
 
 An attacker monitoring the HTTP request in steps 6–7 can capture the token before it transitions to HTTPS. They can then craft an automated exploit that requests the reset link immediately, changing the victim's password. When the victim later clicks the reset link from their email (now in the browser), they’ll find it expired — but in reality, the attacker has already used it.
+
+
+### Broken Authentication & Session Management (Login Bypass) at support.owox.com
+
+```
+Step 1 : Go to https://support.owox.com/hc/ and Sign in with you gmail account
+Step 2 : Browser few web pages at https://support.owox.com/hc/
+Step 3 : Log out from https://support.owox.com/hc/ (make sure you have logged out from gmail also)
+Step 4 : Click on Sign in again, you won't be asked for login with Gmail or something like that.
+
+Successfully Logged In without entering username-password or gmail account.
+```
+
+### Broken Authentication and Session Management
+
+```
+1) Create a Secret account having email address "a@email.com".
+2) Now Logout and ask for password reset link. Don't use the password reset link.
+3) Login using the same password back and update your email address to "b@email.com" and verify the same.
+4) Now logout and use the password reset link which was mailed to "a@email.com" in step 2.
+5) Password will be changed.
+
+All previous password reset links should automatically expire once a user changes his email address.
+
+```
+
+### Session ID Exposure via Referrer Headers
+
+```
+1. Log in and note if session ID appears in URL.
+
+2. Click an external link.
+
+3. Check if session ID is sent in Referrer header using Burp.
+
+```
+
+### 
