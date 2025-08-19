@@ -69,6 +69,10 @@ Severity: **🔥 Critical (Full Account Compromise)**
 
 # Password Reset Poisoning via Middleware: The Hidden Flaw That Can Lead to Account Takeover
 
+# OAuth Open Redirect to ATO:
 
+```
+https://0xoverlord.medium.com/oauth-open-redirect-to-ato-one-link-all-platforms-compromised-c4b54fb51396
+```
 
 
