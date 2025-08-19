@@ -47,3 +47,28 @@ Severity: **🔥 Critical (Full Account Compromise)**
 💥 **Impact:** Attacker maintains a **permanent backdoor** to the victim’s account.
 
 ---
+
+# 0-Click Account Takeover via OAuth Misconfiguration
+
+## Steps to Reproduce:
+
+1.Identify the victim and get their email address.
+
+2.Go to the login page: https://www.[Redacted].com/login
+
+3.Click on Sign in with Google. Before choosing the account, intercept the request in Burp Suite.
+
+4.Forward the requests one by one until you reach the endpoint:
+
+5.In the request body, change the values of email and name to the victim’s email and name.
+
+6.Forward all subsequent requests.
+
+7.You will now be logged into the victim’s account and can view or edit their data.
+
+
+# Password Reset Poisoning via Middleware: The Hidden Flaw That Can Lead to Account Takeover
+
+
+
+
