@@ -89,6 +89,12 @@ Some Common Characters that help bypassing Rate Limit : %0d , %2e , %09 , %20
 4. Always test case variations in email parameters—it might just lead to a cool finding! 
 
 
+## Add the %40 instead of @
+bugbounty0895%40gmail.com
+
+
+
+
 
 
 
